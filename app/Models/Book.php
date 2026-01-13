@@ -19,7 +19,8 @@ class Book extends Model
 
     public function authors(): belongsToMany
     {
-        return $this->belongsToMany(Author::class);
+        return $this->belongsToMany(Author::class)
+            ->withTimestamps();
         //If the relation generates a problem
         //Assign a foreign pivot key and add a primary key to the pivot table if needed
     }

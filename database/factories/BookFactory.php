@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Author;
+use App\Models\Publisher;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -17,7 +19,21 @@ class BookFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'ISBN' => fake()->isbn13(),
+            'name' => fake()->name(),
+            'publisher_id' => Publisher::factory(),
+            'bibliography' => fake()->text(),
+            'cover' => 'http://picsum.photos/seed/'.rand(0,999) .'/100',
+            'price' => fake()->numberBetween(10,350)
         ];
+    }
+
+    public function configure()
+    {
+        return $this->afterCreating(function ($book)
+        {
+            $author = Author::factory()->create();
+            $book->authors()->attach($author->id);
+        });
     }
 }

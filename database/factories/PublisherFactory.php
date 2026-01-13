@@ -17,7 +17,8 @@ class PublisherFactory extends Factory
     public function definition(): array
     {
         return [
-            //
+            'name' => fake()->company(),
+            'logo' => 'http://picsum.photos/seed/'.rand(0,999) .'/100'
         ];
     }
 }
