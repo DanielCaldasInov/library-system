@@ -1,6 +1,8 @@
 <script setup>
-import { useForm, router } from '@inertiajs/vue3'
-import AppLayout from "@/Layouts/AppLayout.vue";
+import AppLayout from "@/Layouts/AppLayout.vue"
+import SearchForm from "@/Components/SearchForm.vue"
+import DataTable from "@/Components/DataTable.vue"
+import Pagination from "@/Components/Pagination.vue"
 
 const props = defineProps({
     books: Object,
@@ -9,23 +11,11 @@ const props = defineProps({
     direction: String,
 })
 
-const form = useForm({
-    filter: props.filters?.filter ?? 'name',
-    search: props.filters?.search ?? '',
-})
-
-const sortBy = (column) => {
-    router.get('/books', {
-        ...form.data(),
-        sort: column,
-        direction: props.sort === column && props.direction === 'asc'
-            ? 'desc'
-            : 'asc',
-    }, {
-        preserveState: true,
-        replace: true,
-    })
-}
+const searchOptions = [
+    { value: 'name', label: 'Name' },
+    { value: 'author', label: 'Author' },
+    { value: 'publisher', label: 'Publisher' },
+]
 </script>
 
 <template>
@@ -38,111 +28,60 @@ const sortBy = (column) => {
 
             <div class="w-full max-w-6xl mx-auto">
 
-                <form
-                    @submit.prevent="form.get('/books', {
-                    preserveState: true,
-                    replace: true,
-                    })"
-                    class="bg-gray-800 p-4 mb-6 rounded-lg"
+                <SearchForm
+                    action="/books"
+                    :filters="filters"
+                    :options="searchOptions"
+                />
+
+                <DataTable
+                    :data="books"
+                    :sort="sort"
+                    :direction="direction"
+                    :filters="filters"
+                    route="/books"
                 >
-                    <div class="flex flex-col md:flex-row gap-2">
-
-                        <select v-model="form.filter" class="select w-48 text-black">
-                            <option value="name" selected>Name</option>
-                            <option value="author">Author</option>
-                            <option value="publisher">Publisher</option>
-                        </select>
-
-                        <input
-                            v-model="form.search"
-                            type="text"
-                            placeholder="Type to search..."
-                            class="input flex-1 text-black"
-                        />
-
-                        <button type="submit" class="btn btn-neutral hover:bg-black px-2">
-                            Search
-                        </button>
-
-                    </div>
-                </form>
-
-                <div class="overflow-x-auto">
-                    <table class="table bg-gray-800 w-full">
-                        <thead>
+                    <template #head="{ sortBy, sort, direction }">
                         <tr>
+                            <th>Cover</th>
                             <th @click="sortBy('name')" class="cursor-pointer">
-                                Name
-                                <span v-if="sort === 'name'">
-                                    {{ direction === 'asc' ? '▲' : '▼' }}
-                                </span>
+                                Name {{ sort === 'name' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
-
                             <th @click="sortBy('publisher')" class="cursor-pointer">
-                                Publisher
-                                <span v-if="sort === 'publisher'">
-                                    {{ direction === 'asc' ? '▲' : '▼' }}
-                                </span>
+                                Publisher {{ sort === 'publisher' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
-
                             <th @click="sortBy('author')" class="cursor-pointer">
-                                Authors
-                                <span v-if="sort === 'author'">
-                                    {{ direction === 'asc' ? '▲' : '▼' }}
-                                </span>
+                                Authors {{ sort === 'author' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
-
                             <th @click="sortBy('price')" class="cursor-pointer text-right">
-                                Price
-                                <span v-if="sort === 'price'">
-                                    {{ direction === 'asc' ? '▲' : '▼' }}
-                                </span>
+                                Price {{ sort === 'price' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
-
                         </tr>
-                        </thead>
-                        <tbody>
-                        <tr v-for="book in books.data" :key="book.id">
+                    </template>
+
+                    <template #body="{ rows }">
+                        <tr v-for="book in rows" :key="book.id">
+                            <td>
+                                <img class='w-24 h-24' :src="book.cover" alt="Book Cover">
+                            </td>
                             <td>{{ book.name }}</td>
                             <td>{{ book.publisher.name }}</td>
-                            <td class="max-w-sm truncate"
-                                :title="book.authors.map(a => a.name).join(', ')">
+                            <td class="truncate max-w-sm">
                                 {{ book.authors.map(a => a.name).join(', ') }}
                             </td>
                             <td class="text-right">
                                 ${{ Number(book.price).toFixed(2) }}
                             </td>
                         </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    </template>
+                </DataTable>
 
-                <div class="mt-4 flex justify-center  space-x-2 bg-gray-800 px-4 rounded-lg w-auto">
-                    <button
-                        :disabled="books.current_page === 1"
-                        @click="$inertia.get(`${books.path}?page=${books.current_page - 1}`)"
-                        class="btn-sm rounded-lg hover:bg-black px-2"
-                    >
-                        Previous
-                    </button>
+                <Pagination
+                    :meta="books"
+                    route="/books"
+                    :filters="{ ...filters, sort, direction }"
+                />
 
-                    <button
-                        v-for="page in Array.from({ length: books.last_page }, (_, i) => i + 1)"
-                        :key="page"
-                        :class="['btn-sm rounded-lg py-4 px-2 hover:bg-black']"
-                        @click="$inertia.get(`${books.path}?page=${page}`)"
-                    >
-                        {{ page }}
-                    </button>
-
-                    <button
-                        :disabled="books.current_page === books.last_page"
-                        @click="$inertia.get(`${books.path}?page=${books.current_page + 1}`)"
-                        class="btn-sm rounded-lg hover:bg-black px-2 border-0"
-                    >
-                        Next
-                    </button>
-                </div>
             </div>
         </div>
     </app-layout>

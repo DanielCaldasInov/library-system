@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\PublisherController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -24,5 +26,11 @@ Route::middleware([
     })->name('dashboard');
 
     Route::resource('books', BookController::class)
+        ->only(['index']);
+
+    Route::resource('authors', AuthorController::class)
+        ->only(['index']);
+
+    Route::resource('publishers', PublisherController::class)
         ->only(['index']);
 });

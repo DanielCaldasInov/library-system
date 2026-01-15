@@ -56,6 +56,14 @@ const logout = () => {
                                          :active="route().current('books.index')">
                                     Books
                                 </NavLink>
+                                <NavLink :href="route('authors.index')"
+                                         :active="route().current('authors.index')">
+                                    Authors
+                                </NavLink>
+                                <NavLink :href="route('publishers.index')"
+                                         :active="route().current('publishers.index')">
+                                    Publishers
+                                </NavLink>
                             </div>
                         </div>
 
