@@ -33,4 +33,8 @@ Route::middleware([
 
     Route::resource('publishers', PublisherController::class)
         ->only(['index']);
+
+    Route::get('/books/export', [BookController::class, 'export'])
+        ->name('books.export');
+
 });

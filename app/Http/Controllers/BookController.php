@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\BooksExport;
 use App\Models\Author;
 use App\Models\Book;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use Maatwebsite\Excel\Facades\Excel;
 
 class BookController extends Controller
 {
@@ -106,5 +108,17 @@ class BookController extends Controller
     public function destroy(Book $book)
     {
         //
+    }
+
+    public function export(Request $request)
+    {
+        return Excel::download(
+            new BooksExport(
+                $request->only(['filter', 'search']),
+                $request->get('sort'),
+                $request->get('direction', 'asc')
+            ),
+            'books.xlsx'
+        );
     }
 }
