@@ -13,11 +13,11 @@ class Book extends Model
     use HasFactory;
 
     protected $casts = [
-        'name' => 'encrypted',
+        //'name' => 'encrypted',
         //'cover' => 'encrypted',
         //'ISBN' => 'encrypted',
         //'Price' => 'encrypted',
-        'Bibliography' => 'encrypted',
+        //'Bibliography' => 'encrypted',
     ];
 
     public function publisher(): BelongsTo

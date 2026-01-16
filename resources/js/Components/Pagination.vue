@@ -13,7 +13,7 @@ const props = defineProps({
         <button
             :disabled="meta.current_page === 1"
             @click="router.get(route, { ...filters, page: meta.current_page - 1 })"
-            class="btn-sm hover:bg-black"
+            class="btn-sm hover:bg-black rounded-md px-3"
         >
             Previous
         </button>
@@ -22,7 +22,7 @@ const props = defineProps({
             v-for="page in meta.last_page"
             :key="page"
             @click="router.get(route, { ...filters, page })"
-            class="btn-sm hover:bg-black"
+            class="btn-sm hover:bg-black rounded-md px-1"
             :class="{ 'btn-primary': page === meta.current_page }"
         >
             {{ page }}
@@ -31,7 +31,7 @@ const props = defineProps({
         <button
             :disabled="meta.current_page === meta.last_page"
             @click="router.get(route, { ...filters, page: meta.current_page + 1 })"
-            class="btn-sm hover:bg-black"
+            class="btn-sm hover:bg-black rounded-md px-3"
         >
             Next
         </button>

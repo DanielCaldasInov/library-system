@@ -13,7 +13,7 @@ class Author extends Model
     use HasFactory;
 
     protected $casts = [
-        'name' => 'encrypted',
+        //'name' => 'encrypted',
     ];
 
     public function books():belongsToMany
