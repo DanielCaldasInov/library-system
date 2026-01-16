@@ -12,6 +12,10 @@ class Author extends Model
     /** @use HasFactory<\Database\Factories\AuthorFactory> */
     use HasFactory;
 
+    protected $casts = [
+        'name' => 'encrypted',
+    ];
+
     public function books():belongsToMany
     {
         return $this->belongsToMany(Book::class)

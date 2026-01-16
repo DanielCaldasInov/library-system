@@ -1,59 +1,108 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
-
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+<p>
+  <img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="300" alt="Laravel Logo">
 </p>
 
-## About Laravel
+<h1>Library Management System</h1>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+<p>
+A library management system built with Laravel, Jetstream and Inertia.js
+</p>
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 📚 About the Project
 
-## Learning Laravel
+This project is a **Library Management System** developed as part of my internship experience.  
+Its goal is to manage **books, authors and publishers** in a structured, scalable and modern way, following best practices of the Laravel ecosystem.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+The application uses **server-side rendering with Inertia.js**, allowing Laravel to handle routing, validation and business logic while Vue.js is responsible for the user interface.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🚀 Current Features
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The project is under active development and currently includes:
 
-### Premium Partners
+- Authentication and user management using **Laravel Jetstream**
+- Book, Author and Publisher management
+- Reusable and generic **index pages** with:
+    - Search and filtering
+    - Sortable table columns
+    - Pagination
+- Eager loading to optimize database queries
+- Clean separation of concerns using:
+    - Controllers
+    - Reusable Vue components
+- Responsive UI using **Tailwind CSS** and **DaisyUI**
+- Optimized export of data to Excel (using Laravel Excel)
+- Prepared structure for data encryption when needed
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+---
 
-## Contributing
+## 🛠️ Technologies Used
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Laravel** – Backend framework
+- **Jetstream** – Authentication scaffolding
+- **Inertia.js** – Bridge between backend and frontend
+- **Vue.js (Vue 3)** – Frontend framework
+- **MySQL** – Database
+- **Tailwind CSS + DaisyUI** – Styling
+- **Laravel Excel** – Data export
 
-## Code of Conduct
+---
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## 📂 Project Structure Highlights
 
-## Security Vulnerabilities
+- `Controllers` handle business logic and data queries
+- `Vue Components` are reused across Books, Authors and Publishers
+- Index pages share common components:
+    - SearchForm
+    - DataTable
+    - Pagination
+- Queries are optimized with eager loading and conditional filters
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+This structure makes the project easy to extend with new entities and features.
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🔐 Security & Data Handling
+
+- Authentication handled by Laravel Jetstream
+- Sensitive data can be encrypted using Laravel’s native encryption features
+- The application follows Laravel security best practices
+
+---
+
+## 👨‍💻 About Me
+
+**Daniel Silva**  
+Software Development Intern
+
+I am a developer focused on building clean, maintainable and scalable applications.  
+This project represents my learning process and practical experience with Laravel, modern frontend tooling and real-world application architecture.
+
+---
+
+## 📖 About Laravel
+
+Laravel is a web application framework with expressive and elegant syntax.  
+It simplifies common development tasks such as routing, database management, authentication and background jobs, allowing developers to focus on building robust applications.
+
+Laravel provides a powerful ecosystem that fits both small projects and large-scale systems.
+
+Learn more at: [https://laravel.com](https://laravel.com)
+
+---
+
+## 📄 License
+
+This project is open-sourced software licensed under the **MIT license**.
+
+You are free to use, modify and distribute this software according to the terms of the license.
+
+---
+
+## 📌 Project Status
+
+🚧 **In development**  
+New features and improvements are continuously being added.

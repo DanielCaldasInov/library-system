@@ -12,6 +12,14 @@ class Book extends Model
     /** @use HasFactory<\Database\Factories\BookFactory> */
     use HasFactory;
 
+    protected $casts = [
+        'name' => 'encrypted',
+        //'cover' => 'encrypted',
+        //'ISBN' => 'encrypted',
+        //'Price' => 'encrypted',
+        'Bibliography' => 'encrypted',
+    ];
+
     public function publisher(): BelongsTo
     {
         return $this->belongsTo(Publisher::class);

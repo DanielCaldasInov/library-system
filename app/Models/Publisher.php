@@ -11,6 +11,10 @@ class Publisher extends Model
     /** @use HasFactory<\Database\Factories\PublisherFactory> */
     use HasFactory;
 
+    protected $casts = [
+        //'name' => 'encrypted',
+    ];
+
     public function books(): HasMany
     {
         return $this->hasMany(Book::class);
