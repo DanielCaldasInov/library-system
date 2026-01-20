@@ -1,6 +1,6 @@
 <script setup>
-import AppLayout from '@/Layouts/AppLayout.vue'
 import DashboardSummary from '@/Components/DashboardSummary.vue'
+import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 defineProps({
     stats: Object,
@@ -8,7 +8,7 @@ defineProps({
 </script>
 
 <template>
-    <AppLayout title="Dashboard">
+    <public-layout title="Dashboard">
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Dashboard
@@ -20,5 +20,5 @@ defineProps({
                 <DashboardSummary :stats="stats" />
             </div>
         </div>
-    </AppLayout>
+    </public-layout>
 </template>

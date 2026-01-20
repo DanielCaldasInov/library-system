@@ -11,18 +11,24 @@ use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
-    return Inertia::render('Welcome', [
-        'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
-    ]);
+    return Inertia::render('Welcome',);
 });
 
+/**
+ * Public catalog
+ */
+Route::resource('books', BookController::class)->only(['index']);
+Route::resource('authors', AuthorController::class)->only(['index']);
+Route::resource('publishers', PublisherController::class)->only(['index']);
+
+/**
+ * Admin-only routes
+ */
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
     'verified',
+    'admin',
 ])->group(function () {
 
     Route::get('/dashboard', function () {
@@ -51,15 +57,6 @@ Route::middleware([
             ],
         ]);
     })->name('dashboard');
-
-    Route::resource('books', BookController::class)
-        ->only(['index']);
-
-    Route::resource('authors', AuthorController::class)
-        ->only(['index']);
-
-    Route::resource('publishers', PublisherController::class)
-        ->only(['index']);
 
     Route::get('/books/export', [BookController::class, 'export'])
         ->name('books.export');

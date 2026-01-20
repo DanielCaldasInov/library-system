@@ -1,8 +1,8 @@
 <script setup>
-import AppLayout from "@/Layouts/AppLayout.vue"
 import SearchForm from "@/Components/SearchForm.vue"
 import DataTable from "@/Components/DataTable.vue"
 import Pagination from "@/Components/Pagination.vue"
+import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 defineProps({
     publishers: Object,
@@ -18,8 +18,8 @@ const searchOptions = [
 </script>
 
 <template>
-    <app-layout title="Publishers">
-        <div class="p-6 bg-[#1b1b18] flex flex-col items-center">
+    <public-layout title="Publishers">
+        <div class="p-6 flex flex-col items-center">
 
             <h1 class="text-3xl font-bold mb-6 bg-gray-800 px-6 py-4 rounded-lg">
                 Publishers
@@ -88,5 +88,5 @@ const searchOptions = [
 
             </div>
         </div>
-    </app-layout>
+    </public-layout>
 </template>

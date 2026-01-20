@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -35,9 +36,21 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
-        return [
-            ...parent::share($request),
-            //
-        ];
+        $user = $request->user();
+
+        return array_merge(parent::share($request), [
+            'auth' => [
+                'user' => $user ? [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'role' => $user->role?->name,
+                    'is_admin' => $user->isAdmin(),
+                ] : null,
+            ],
+            'routes' => [
+                'canLogin' => Route::has('login'),
+                'canRegister' => Route::has('register'),
+            ],
+        ]);
     }
 }

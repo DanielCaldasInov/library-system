@@ -1,8 +1,8 @@
 <script setup>
-import AppLayout from "@/Layouts/AppLayout.vue"
 import SearchForm from "@/Components/SearchForm.vue"
 import DataTable from "@/Components/DataTable.vue"
 import Pagination from "@/Components/Pagination.vue"
+import PublicLayout from "@/Layouts/PublicLayout.vue";
 
 const props = defineProps({
     books: Object,
@@ -19,23 +19,23 @@ const searchOptions = [
 </script>
 
 <template>
-    <app-layout title="Books">
-        <div class="p-6 bg-[#1b1b18] flex flex-col items-center">
+    <public-layout title="Books">
+        <div class="p-6 flex flex-col items-center">
 
             <h1 class="text-3xl font-bold mb-6 bg-gray-800 px-6 py-4 rounded-lg">
                 Books
             </h1>
 
-            <a :href="route('books.export', {
-                ...filters,
-                sort,
-                direction
-            })"
-                class="btn btn-outline btn-sm mb-4"
+            <a  v-if="$page.props.auth.user.is_admin"
+                :href="route('books.export', {
+            ...filters,
+            sort,
+            direction
+        })"
+               class="btn btn-outline btn-sm mb-4"
             >
                 Export to Excel
             </a>
-
 
             <div class="w-full max-w-6xl mx-auto">
 
@@ -95,5 +95,5 @@ const searchOptions = [
 
             </div>
         </div>
-    </app-layout>
+    </public-layout>
 </template>
