@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Publisher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class PublisherController extends Controller
@@ -19,9 +20,9 @@ class PublisherController extends Controller
         $publishers = Publisher::query()
             ->with(['books']) // eager loading
             ->when($request->filled('search'), function ($query) use ($request) {
-                $query->where('name', 'like', "%{$request->search}%")
+                $query->where('name', 'like', "%$request->search%")
                     ->orWhereHas('books', fn ($q) =>
-                    $q->where('name', 'like', "%{$request->search}%")
+                    $q->where('name', 'like', "%$request->search%")
                     );
             })
             ->when($sort === 'name', fn ($q) =>
@@ -47,7 +48,7 @@ class PublisherController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Publishers/Create');
     }
 
     /**
@@ -55,7 +56,22 @@ class PublisherController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:publishers,name'],
+            'logo' => ['required','image','mimes:jpeg,png,jpg,svg','max:2048']
+        ]);
+
+        $logoPath = null;
+
+        if ($request->hasFile('logo')) {
+            $logoPath = $request->file('logo')->store('publishers', 'public');
+        }
+        Publisher::create([
+            'name' => $validated['name'],
+            'logo' => '/storage/'.$logoPath, // ex: publishers/abc.png
+        ]);
+
+        return redirect()->route('publishers.index')->with('success', 'Publisher created successfully.');
     }
 
     /**
@@ -63,7 +79,13 @@ class PublisherController extends Controller
      */
     public function show(Publisher $publisher)
     {
-        //
+        $publisher->load([
+            'books.authors',
+        ]);
+
+        return Inertia::render('Publishers/Show', [
+            'publisher' => $publisher,
+        ]);
     }
 
     /**
@@ -71,7 +93,9 @@ class PublisherController extends Controller
      */
     public function edit(Publisher $publisher)
     {
-        //
+        return Inertia::render('Publishers/Edit', [
+        'publisher' => $publisher,
+    ]);
     }
 
     /**
@@ -79,7 +103,31 @@ class PublisherController extends Controller
      */
     public function update(Request $request, Publisher $publisher)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:publishers,name,' . $publisher->id],
+            'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
+        ]);
+
+        if (($validated['remove_logo'] ?? false) && $publisher->logo) {
+            Storage::disk('public')->delete($publisher->logo);
+            $publisher->logo = null;
+        }
+
+        if ($request->hasFile('logo')) {
+            if ($publisher->logo) {
+                Storage::disk('public')->delete($publisher->logo);
+            }
+
+            $publisher->logo = '/storage/'.$request->file('logo')->store('publishers', 'public');
+        }
+
+        $publisher->name = $validated['name'];
+        $publisher->save();
+
+        return redirect()
+            ->route('publishers.show', $publisher->id)
+            ->with('success', 'Publisher updated successfully.');
     }
 
     /**
@@ -87,6 +135,21 @@ class PublisherController extends Controller
      */
     public function destroy(Publisher $publisher)
     {
-        //
+        if ($publisher->books()->exists()) {
+            return back()->with(
+                'error',
+                'This publisher cannot be deleted because it has associated books.'
+            );
+        }
+
+        if ($publisher->logo) {
+            Storage::disk('public')->delete($publisher->logo);
+        }
+
+        $publisher->delete();
+
+        return redirect()
+            ->route('publishers.index')
+            ->with('success', 'Publisher deleted successfully.');
     }
 }
