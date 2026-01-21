@@ -5,7 +5,10 @@ namespace App\Http\Controllers;
 use App\Exports\BooksExport;
 use App\Models\Author;
 use App\Models\Book;
+use App\Models\Publisher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -18,6 +21,7 @@ class BookController extends Controller
     {
         $sort = $request->get('sort', 'name');
         $direction = $request->get('direction', 'asc');
+
         $books = Book::query()
             ->with(['authors', 'publisher'])
             ->when($request->filled('search'), function ($query) use ($request) {
@@ -25,15 +29,13 @@ class BookController extends Controller
                     'author' => $query->whereHas('authors', fn ($q) =>
                     $q->where('name', 'like', "%{$request->search}%")
                     ),
-
                     'publisher' => $query->whereHas('publisher', fn ($q) =>
                     $q->where('name', 'like', "%{$request->search}%")
                     ),
-
                     default => $query->where('name', 'like', "%{$request->search}%"),
                 };
             })
-            ->when(in_array($sort, ['name', 'price']), function ($query) use ($sort, $direction) {
+            ->when(in_array($sort, ['name', 'price'], true), function ($query) use ($sort, $direction) {
                 $query->orderBy($sort, $direction);
             })
             ->when($sort === 'publisher', function ($query) use ($direction) {
@@ -67,7 +69,10 @@ class BookController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Books/Create', [
+            'authors' => Author::query()->orderBy('name')->get(['id', 'name']),
+            'publishers' => Publisher::query()->orderBy('name')->get(['id', 'name']),
+        ]);
     }
 
     /**
@@ -75,7 +80,36 @@ class BookController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'isbn' => ['required', 'digits:13', 'unique:books,isbn'],
+            'price' => ['nullable', 'numeric', 'min:1'],
+            'bibliography' => ['nullable', 'string'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'publisher_id' => ['required', 'integer', 'exists:publishers,id'],
+            'authors' => ['required', 'array', 'min:1'],
+            'authors.*' => ['integer', 'exists:authors,id'],
+        ]);
+
+        $coverPath = null;
+        if ($request->hasFile('cover')) {
+            $coverPath = '/storage/'.$request->file('cover')->store('books/covers', 'public');
+        }
+
+        $book = Book::create([
+            'name' => $validated['name'],
+            'isbn' => $validated['isbn'],
+            'price' => $validated['price'] ?? null,
+            'bibliography' => $validated['bibliography'] ?? null,
+            'cover' => $coverPath,
+            'publisher_id' => $validated['publisher_id'],
+        ]);
+
+        $book->authors()->sync($validated['authors']);
+
+        return redirect()
+            ->route('books.index')
+            ->with('success', 'Book created successfully.');
     }
 
     /**
@@ -83,7 +117,12 @@ class BookController extends Controller
      */
     public function show(Book $book)
     {
-        //
+        $book->load(['authors:id,name,photo', 'publisher:id,name,logo']);
+        $book->cover_url = $book->cover ? Storage::disk('public')->url($book->cover) : null;
+
+        return Inertia::render('Books/Show', [
+            'book' => $book,
+        ]);
     }
 
     /**
@@ -91,7 +130,15 @@ class BookController extends Controller
      */
     public function edit(Book $book)
     {
-        //
+        $book->load(['authors:id', 'publisher:id']);
+        $book->cover_url = $book->cover ? Storage::disk('public')->url($book->cover) : null;
+
+        return Inertia::render('Books/Edit', [
+            'book' => $book,
+            'authors' => Author::query()->orderBy('name')->get(['id', 'name']),
+            'publishers' => Publisher::query()->orderBy('name')->get(['id', 'name']),
+            'selectedAuthors' => $book->authors->pluck('id'),
+        ]);
     }
 
     /**
@@ -99,7 +146,41 @@ class BookController extends Controller
      */
     public function update(Request $request, Book $book)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'isbn' => ['required', 'digits:13', Rule::unique('books', 'isbn')->ignore($book->id)],
+            'price' => ['nullable', 'numeric', 'min:0'],
+            'bibliography' => ['nullable', 'string'],
+            'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'publisher_id' => ['required', 'integer', 'exists:publishers,id'],
+            'authors' => ['required', 'array', 'min:1'],
+            'authors.*' => ['integer', 'exists:authors,id'],
+        ]);
+
+        $coverPath = $book->cover;
+
+        if ($request->hasFile('cover')) {
+            if ($book->cover && Storage::disk('public')->exists($book->cover)) {
+                Storage::disk('public')->delete($book->cover);
+            }
+
+            $coverPath = '/storage/'.$request->file('cover')->store('books/covers', 'public');
+        }
+
+        $book->update([
+            'name' => $validated['name'],
+            'isbn' => $validated['isbn'],
+            'price' => $validated['price'] ?? null,
+            'bibliography' => $validated['bibliography'] ?? null,
+            'cover' => $coverPath,
+            'publisher_id' => $validated['publisher_id'],
+        ]);
+
+        $book->authors()->sync($validated['authors']);
+
+        return redirect()
+            ->route('books.index')
+            ->with('success', 'Book updated successfully.');
     }
 
     /**
@@ -107,7 +188,16 @@ class BookController extends Controller
      */
     public function destroy(Book $book)
     {
-        //
+        if ($book->cover && Storage::disk('public')->exists($book->cover)) {
+            Storage::disk('public')->delete($book->cover);
+        }
+
+        $book->authors()->detach();
+        $book->delete();
+
+        return redirect()
+            ->route('books.index')
+            ->with('success', 'Book deleted successfully.');
     }
 
     public function export(Request $request)
