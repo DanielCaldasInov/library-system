@@ -26,16 +26,14 @@ const searchOptions = [
                 Books
             </h1>
 
-            <a  v-if="$page.props.auth.user.is_admin"
-                :href="route('books.export', {
-            ...filters,
-            sort,
-            direction
-        })"
-               class="btn btn-outline btn-sm mb-4"
+            <a
+                v-if="$page.props.auth?.user?.is_admin"
+                :href="route('books.export', { ...filters, sort, direction })"
+                class="btn btn-outline btn-sm mb-4"
             >
                 Export to Excel
             </a>
+
 
             <div class="w-full max-w-6xl mx-auto">
 

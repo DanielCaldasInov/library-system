@@ -59,7 +59,7 @@ defineProps({
                         Dashboard
                     </Link>
 
-                    <Link href="/profile" class="btn btn-secondary">
+                    <Link :href="route('profile.show') " class="btn btn-secondary">
                         Profile
                     </Link>
 

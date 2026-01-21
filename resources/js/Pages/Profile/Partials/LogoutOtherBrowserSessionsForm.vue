@@ -49,7 +49,9 @@ const closeModal = () => {
         </template>
 
         <template #description>
-            Manage and log out your active sessions on other browsers and devices.
+            <span class="text-white">
+                Manage and log out your active sessions on other browsers and devices.
+            </span>
         </template>
 
         <template #content>

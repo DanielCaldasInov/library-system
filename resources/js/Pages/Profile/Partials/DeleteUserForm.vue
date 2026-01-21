@@ -44,7 +44,9 @@ const closeModal = () => {
         </template>
 
         <template #description>
-            Permanently delete your account.
+            <span class="text-white">
+                Permanently delete your account.
+            </span>
         </template>
 
         <template #content>

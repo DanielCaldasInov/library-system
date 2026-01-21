@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Author;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class AuthorController extends Controller
@@ -47,7 +48,7 @@ class AuthorController extends Controller
      */
     public function create()
     {
-        //
+        return Inertia::render('Authors/Create');
     }
 
     /**
@@ -55,7 +56,23 @@ class AuthorController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:authors,name'],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $author = new Author();
+        $author->name = $validated['name'];
+
+        if ($request->hasFile('photo')) {
+            $author->photo = '/storage/'.$request->file('photo')->store('authors', 'public');
+        }
+
+        $author->save();
+
+        return redirect()
+            ->route('authors.show', $author->id)
+            ->with('success', 'Author created successfully.');
     }
 
     /**
@@ -63,7 +80,13 @@ class AuthorController extends Controller
      */
     public function show(Author $author)
     {
-        //
+        $author->load([
+            'books.publisher',
+        ]);
+
+        return Inertia::render('Authors/Show', [
+            'author' => $author,
+        ]);
     }
 
     /**
@@ -71,7 +94,9 @@ class AuthorController extends Controller
      */
     public function edit(Author $author)
     {
-        //
+        return Inertia::render('Authors/Edit', [
+            'author' => $author,
+        ]);
     }
 
     /**
@@ -79,7 +104,31 @@ class AuthorController extends Controller
      */
     public function update(Request $request, Author $author)
     {
-        //
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:authors,name,' . $author->id],
+            'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_photo' => ['nullable', 'boolean'],
+        ]);
+
+        if (($validated['remove_photo'] ?? false) && $author->photo) {
+            Storage::disk('public')->delete($author->photo);
+            $author->photo = null;
+        }
+
+        if ($request->hasFile('photo')) {
+            if ($author->photo) {
+                Storage::disk('public')->delete($author->photo);
+            }
+
+            $author->photo = '/storage/'.$request->file('photo')->store('authors', 'public');
+        }
+
+        $author->name = $validated['name'];
+        $author->save();
+
+        return redirect()
+            ->route('authors.show', $author->id)
+            ->with('success', 'Author updated successfully.');
     }
 
     /**
@@ -87,6 +136,21 @@ class AuthorController extends Controller
      */
     public function destroy(Author $author)
     {
-        //
+        if ($author->books()->exists()) {
+            return back()->with(
+                'error',
+                'This author cannot be deleted because it has associated books.'
+            );
+        }
+
+        if ($author->photo) {
+            Storage::disk('public')->delete($author->photo);
+        }
+
+        $author->delete();
+
+        return redirect()
+            ->route('authors.index')
+            ->with('success', 'Author deleted successfully.');
     }
 }
