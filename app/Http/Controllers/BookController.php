@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Request as BookRequest;
 
 class BookController extends Controller
 {
@@ -23,7 +24,18 @@ class BookController extends Controller
         $direction = $request->get('direction', 'asc');
 
         $books = Book::query()
-            ->with(['authors', 'publisher'])
+            ->with([
+                'authors:id,name',
+                'publisher:id,name',
+            ])
+            ->withCount([
+                'requests as active_requests_count' => function ($q) {
+                    $q->whereIn('status', [
+                        BookRequest::STATUS_ACTIVE,
+                        BookRequest::STATUS_AWAITING_CONFIRMATION,
+                    ]);
+                }
+            ])
             ->when($request->filled('search'), function ($query) use ($request) {
                 match ($request->filter) {
                     'author' => $query->whereHas('authors', fn ($q) =>
@@ -117,11 +129,19 @@ class BookController extends Controller
      */
     public function show(Book $book)
     {
-        $book->load(['authors:id,name,photo', 'publisher:id,name,logo']);
-        $book->cover_url = $book->cover ? Storage::disk('public')->url($book->cover) : null;
+        $book->load(['publisher', 'authors']);
+
+        $hasActiveRequest = BookRequest::query()
+            ->where('book_id', $book->id)
+            ->whereIn('status', [
+                BookRequest::STATUS_ACTIVE,
+                BookRequest::STATUS_AWAITING_CONFIRMATION,
+            ])
+            ->exists();
 
         return Inertia::render('Books/Show', [
             'book' => $book,
+            'isAvailable' => ! $hasActiveRequest,
         ]);
     }
 
@@ -188,6 +208,20 @@ class BookController extends Controller
      */
     public function destroy(Book $book)
     {
+        $hasActiveRequests = $book->requests()
+            ->whereIn('status', [
+                BookRequest::STATUS_ACTIVE,
+                BookRequest::STATUS_AWAITING_CONFIRMATION,
+            ])
+            ->exists();
+
+        if ($hasActiveRequests) {
+            return back()->with(
+                'error',
+                'This book cannot be deleted because it has active or pending requests.'
+            );
+        }
+
         if ($book->cover && Storage::disk('public')->exists($book->cover)) {
             Storage::disk('public')->delete($book->cover);
         }
@@ -199,6 +233,7 @@ class BookController extends Controller
             ->route('books.index')
             ->with('success', 'Book deleted successfully.');
     }
+
 
     public function export(Request $request)
     {

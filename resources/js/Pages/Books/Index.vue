@@ -4,7 +4,7 @@ import DataTable from "@/Components/DataTable.vue"
 import Pagination from "@/Components/Pagination.vue"
 import PublicLayout from "@/Layouts/PublicLayout.vue"
 import ConfirmModal from "@/Components/ConfirmModal.vue"
-import { ref } from "vue"
+import { ref, computed } from "vue"
 import { router } from "@inertiajs/vue3"
 
 const props = defineProps({
@@ -32,8 +32,17 @@ const onCancelDelete = () => {
     bookToDelete.value = null
 }
 
+const deleteBlockedByActiveRequest = computed(() => {
+    return (bookToDelete.value?.active_requests_count ?? 0) > 0
+})
+
 const confirmDelete = () => {
     if (!bookToDelete.value) return
+
+    // proteção extra (mesmo com botão disabled)
+    if ((bookToDelete.value.active_requests_count ?? 0) > 0) {
+        return
+    }
 
     router.delete(route("books.destroy", bookToDelete.value.id), {
         preserveScroll: true,
@@ -41,9 +50,17 @@ const confirmDelete = () => {
             confirmModal.value?.close()
             bookToDelete.value = null
         },
-        onError: () => {
-        },
     })
+}
+
+const availabilityBadgeClass = (book) => {
+    const busy = (book?.active_requests_count ?? 0) > 0
+    return busy ? "badge badge-error" : "badge badge-success"
+}
+
+const availabilityLabel = (book) => {
+    const busy = (book?.active_requests_count ?? 0) > 0
+    return busy ? "Unavailable" : "Available"
 }
 </script>
 
@@ -97,6 +114,8 @@ const confirmDelete = () => {
                                 Name {{ sort === 'name' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 
+                            <th>Availability</th>
+
                             <th @click="sortBy('publisher')" class="cursor-pointer">
                                 Publisher {{ sort === 'publisher' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
@@ -130,6 +149,12 @@ const confirmDelete = () => {
                             </td>
 
                             <td>{{ book.name }}</td>
+
+                            <td>
+                                <span :class="availabilityBadgeClass(book)">
+                                    {{ availabilityLabel(book) }}
+                                </span>
+                            </td>
 
                             <td>{{ book.publisher?.name ?? '-' }}</td>
 
@@ -179,8 +204,15 @@ const confirmDelete = () => {
             confirmText="Yes, delete"
             cancelText="Cancel"
             :danger="true"
+            :confirm-disabled="deleteBlockedByActiveRequest"
             @confirm="confirmDelete"
             @cancel="onCancelDelete"
-        />
+        >
+            <div v-if="deleteBlockedByActiveRequest" class="alert alert-warning mt-3">
+                <span>
+                    This book cannot be deleted because it has an active request. Complete/cancel the request first.
+                </span>
+            </div>
+        </ConfirmModal>
     </public-layout>
 </template>

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use App\Models\Request as BookRequest;
 
 class Book extends Model
 {
@@ -29,7 +30,10 @@ class Book extends Model
     {
         return $this->belongsToMany(Author::class)
             ->withTimestamps();
-        //If the relation generates a problem
-        //Assign a foreign pivot key and add a primary key to the pivot table if needed
+    }
+
+    public function requests()
+    {
+        return $this->hasMany(BookRequest::class);
     }
 }

@@ -1,29 +1,68 @@
 <script setup>
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, usePage, useForm } from '@inertiajs/vue3'
 import PublicLayout from "@/Layouts/PublicLayout.vue"
 import ConfirmModal from "@/Components/ConfirmModal.vue"
-import { ref } from "vue"
+import { ref, computed } from "vue"
 
 const props = defineProps({
     book: Object,
+    isAvailable: Boolean,
 })
+
+const page = usePage()
 
 const imgSrc = (path) => path || null
 
-const confirmModal = ref(null)
+const confirmDeleteModal = ref(null)
+const confirmRequestModal = ref(null)
 
 const openDeleteModal = () => {
-    confirmModal.value?.open()
+    confirmDeleteModal.value?.open()
 }
 
 const confirmDelete = () => {
     router.delete(route('books.destroy', props.book.id), {
         preserveScroll: true,
         onSuccess: () => {
-            confirmModal.value?.close()
+            confirmDeleteModal.value?.close()
         },
     })
 }
+
+const isLoggedIn = computed(() => !!page.props.auth?.user)
+const isAdmin = computed(() => !!page.props.auth?.user?.is_admin)
+
+const canRequest = computed(() =>
+    isLoggedIn.value && props.isAvailable
+)
+
+const openRequestModal = () => {
+    requestForm.clearErrors()
+    confirmRequestModal.value?.open()
+}
+
+// ✅ usando form para capturar erros do backend (limite de 3 requests)
+const requestForm = useForm({
+    book_id: props.book.id,
+})
+
+const requestLimitMessage = computed(() => requestForm.errors?.book_id || "")
+
+const requestBook = () => {
+    requestForm.post(route('requests.store'), {
+        preserveScroll: true,
+        onSuccess: () => {
+            confirmRequestModal.value?.close()
+            requestForm.reset()
+            requestForm.clearErrors()
+        },
+    })
+}
+
+const isbnValue = computed(() => {
+    const b = props.book ?? {}
+    return ( b.ISBN)
+})
 </script>
 
 <template>
@@ -45,7 +84,20 @@ const confirmDelete = () => {
                         </Link>
 
                         <button
-                            v-if="$page.props.auth?.user?.is_admin"
+                            v-if="isLoggedIn"
+                            type="button"
+                            class="btn py-2 px-2"
+                            :class="props.isAvailable
+                            ? 'bg-[#5754E8] hover:bg-[#3c39e3]'
+                            : 'bg-gray-600 cursor-not-allowed'"
+                            :disabled="!props.isAvailable"
+                            @click="props.isAvailable && openRequestModal()"
+                        >
+                            {{ props.isAvailable ? 'Request this book' : 'Book unavailable' }}
+                        </button>
+
+                        <button
+                            v-if="isAdmin"
                             type="button"
                             class="btn bg-red-600 py-2 px-2 hover:bg-red-900"
                             @click="openDeleteModal"
@@ -54,7 +106,7 @@ const confirmDelete = () => {
                         </button>
 
                         <Link
-                            v-if="$page.props.auth?.user?.is_admin"
+                            v-if="isAdmin"
                             :href="route('books.edit', book.id)"
                             class="btn bg-gray-700 hover:bg-black"
                         >
@@ -88,7 +140,7 @@ const confirmDelete = () => {
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">ISBN</span>
                         <span class="text-white font-mono">
-                            {{ book.isbn }}
+                            {{ isbnValue }}
                         </span>
                     </div>
 
@@ -189,7 +241,25 @@ const confirmDelete = () => {
         </div>
 
         <ConfirmModal
-            ref="confirmModal"
+            ref="confirmRequestModal"
+            title="Request this book"
+            :message="`Create a new request for '${book.name}'? Due date will be set automatically.`"
+            confirmText="Yes, request"
+            cancelText="Cancel"
+            :danger="false"
+            :confirmDisabled="requestForm.processing"
+            @confirm="requestBook"
+            @cancel="requestForm.clearErrors()"
+        >
+            <div v-if="requestLimitMessage" class="alert alert-warning mt-3">
+                <span>
+                    {{ requestLimitMessage }}
+                </span>
+            </div>
+        </ConfirmModal>
+
+        <ConfirmModal
+            ref="confirmDeleteModal"
             title="Delete book"
             :message="`Are you sure you want to delete '${book.name}'? This action cannot be undone.`"
             confirmText="Yes, delete"
