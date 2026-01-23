@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendRequestCreatedEmails;
 use App\Models\Book;
 use App\Models\Request as BookRequest;
+use App\Services\RequestEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -220,7 +222,7 @@ class RequestController extends Controller
             'status' => BookRequest::STATUS_ACTIVE,
         ]);
 
-        // TODO: send emails to admin and citizen
+        SendRequestCreatedEmails::dispatch($req->id);
 
         return redirect()
             ->route('requests.index')

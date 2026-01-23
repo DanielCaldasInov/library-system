@@ -14,25 +14,21 @@ defineProps({
     <Head :title="title" />
 
     <div class="min-h-screen bg-base-200 flex flex-col">
-        <!-- Navbar -->
         <div class="navbar bg-base-100 shadow relative">
-            <!-- Logo -->
             <div class="flex-1">
                 <Link href="/" class="btn btn-ghost text-xl">
                     <ApplicationMark class="block h-9 w-auto" /> InovStore
                 </Link>
             </div>
 
-            <!-- Links -->
             <div class="absolute left-1/2 -translate-x-1/2 flex gap-2">
                 <Link href="/books" class="btn btn-ghost">Books</Link>
                 <Link href="/authors" class="btn btn-ghost">Authors</Link>
                 <Link href="/publishers" class="btn btn-ghost">Publishers</Link>
                 <Link v-if="$page.props.auth?.user" href="/requests" class="btn btn-ghost">Requests</Link>
-                <Link v-if="$page.props.auth?.user" href="/users" class="btn btn-ghost">Users</Link>
+                <Link v-if="$page.props.auth?.user?.is_admin" href="/users" class="btn btn-ghost">Users</Link>
             </div>
 
-            <!-- Auth -->
             <div class="flex flex-row gap-2">
                 <template v-if="!$page.props.auth?.user">
                     <Link
@@ -75,12 +71,10 @@ defineProps({
             </div>
         </div>
 
-        <!-- Page content -->
         <main class="flex-1 bg-[#191E24]">
             <slot />
         </main>
 
-        <!-- Footer -->
         <footer class="border-t border-base-300 bg-base-100">
             <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div class="text-sm opacity-70">
