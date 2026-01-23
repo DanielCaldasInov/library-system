@@ -139,9 +139,27 @@ class BookController extends Controller
             ])
             ->exists();
 
+        $bookRequestsQuery = BookRequest::query()
+            ->where('book_id', $book->id)
+            ->orderByDesc('requested_at');
+
+        $bookRequestsCount = (clone $bookRequestsQuery)->count();
+
+        $bookRequests = $bookRequestsQuery
+            ->get()
+            ->map(fn (BookRequest $r) => [
+                'id' => $r->id,
+                'number' => $r->number,
+                'status' => $r->status,
+                'requested_at' => $r->requested_at,
+                'returned_at' => $r->returned_at,
+            ]);
+
         return Inertia::render('Books/Show', [
             'book' => $book,
             'isAvailable' => ! $hasActiveRequest,
+            'bookRequestsCount' => $bookRequestsCount,
+            'bookRequests' => $bookRequests,
         ]);
     }
 

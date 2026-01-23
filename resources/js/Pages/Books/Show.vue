@@ -7,6 +7,8 @@ import { ref, computed } from "vue"
 const props = defineProps({
     book: Object,
     isAvailable: Boolean,
+    bookRequests: Array,
+    bookRequestsCount: Number,
 })
 
 const page = usePage()
@@ -41,7 +43,6 @@ const openRequestModal = () => {
     confirmRequestModal.value?.open()
 }
 
-// ✅ usando form para capturar erros do backend (limite de 3 requests)
 const requestForm = useForm({
     book_id: props.book.id,
 })
@@ -61,15 +62,46 @@ const requestBook = () => {
 
 const isbnValue = computed(() => {
     const b = props.book ?? {}
-    return ( b.ISBN)
+    return (b.ISBN)
 })
+
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : "—")
+
+const statusBadge = (status) => {
+    switch (status) {
+        case "active":
+            return "badge-success"
+        case "awaiting_confirmation":
+            return "badge-warning"
+        case "completed":
+            return "badge-neutral"
+        case "canceled":
+            return "badge-error"
+        default:
+            return "badge-ghost"
+    }
+}
+
+const statusLabel = (status) => {
+    switch (status) {
+        case "active":
+            return "Active"
+        case "awaiting_confirmation":
+            return "Awaiting confirmation"
+        case "completed":
+            return "Completed"
+        case "canceled":
+            return "Canceled"
+        default:
+            return status ?? "—"
+    }
+}
 </script>
 
 <template>
     <PublicLayout title="Book Details">
         <div class="p-6 flex flex-col items-center">
             <div class="w-full max-w-3xl mx-auto bg-gray-800 rounded-lg p-6">
-
                 <div class="flex items-center justify-between mb-6">
                     <h1 class="text-2xl font-bold">
                         Book Details
@@ -88,8 +120,8 @@ const isbnValue = computed(() => {
                             type="button"
                             class="btn py-2 px-2"
                             :class="props.isAvailable
-                            ? 'bg-[#5754E8] hover:bg-[#3c39e3]'
-                            : 'bg-gray-600 cursor-not-allowed'"
+                                ? 'bg-[#5754E8] hover:bg-[#3c39e3]'
+                                : 'bg-gray-600 cursor-not-allowed'"
                             :disabled="!props.isAvailable"
                             @click="props.isAvailable && openRequestModal()"
                         >
@@ -124,8 +156,8 @@ const isbnValue = computed(() => {
                             class="w-full h-full object-cover"
                         />
                         <span v-else class="text-xs opacity-60">
-                            No cover
-                        </span>
+              No cover
+            </span>
                     </div>
                 </div>
 
@@ -133,34 +165,81 @@ const isbnValue = computed(() => {
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Name</span>
                         <span class="text-white font-bold text-lg">
-                            {{ book.name }}
-                        </span>
+              {{ book.name }}
+            </span>
                     </div>
 
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">ISBN</span>
                         <span class="text-white font-mono">
-                            {{ isbnValue }}
-                        </span>
+              {{ isbnValue }}
+            </span>
                     </div>
 
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Price</span>
                         <span class="text-white">
-                            ${{ Number(book.price ?? 0).toFixed(2) }}
-                        </span>
+              ${{ Number(book.price ?? 0).toFixed(2) }}
+            </span>
                     </div>
 
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Bibliography</span>
                         <span class="text-white whitespace-pre-line">
-                            {{ book.bibliography || '—' }}
+              {{ book.bibliography || '—' }}
+            </span>
+                    </div>
+                </div>
+
+                <div class="bg-gray-900/80 rounded-lg p-4 mb-6">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-lg font-bold">Requests history</h2>
+                        <span class="text-sm opacity-70">
+                          Total: {{ bookRequestsCount ?? (bookRequests?.length ?? 0) }}
                         </span>
+                    </div>
+
+                    <div v-if="!bookRequests?.length" class="opacity-60">
+                        No requests for this book
+                    </div>
+
+                    <div v-else class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Status</th>
+                                <th>Withdrawn</th>
+                                <th>Returned</th>
+                            </tr>
+                            </thead>
+
+                            <tbody>
+                            <tr v-for="r in bookRequests" :key="r.id">
+                                <td class="font-mono">
+                                    {{ r.number }}
+                                </td>
+
+                                <td>
+                    <span class="badge" :class="statusBadge(r.status)">
+                      {{ statusLabel(r.status) }}
+                    </span>
+                                </td>
+
+                                <td class="whitespace-nowrap">
+                                    {{ fmtDate(r.requested_at) }}
+                                </td>
+
+                                <td class="whitespace-nowrap">
+                                    {{ fmtDate(r.returned_at) }}
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
                     <div class="bg-gray-900/80 rounded-lg p-4">
                         <h2 class="text-lg font-bold mb-3">Publisher</h2>
 
@@ -177,8 +256,8 @@ const isbnValue = computed(() => {
                                         class="w-full h-full object-cover"
                                     />
                                     <span v-else class="text-xs opacity-60">
-                                        No logo
-                                    </span>
+                    No logo
+                  </span>
                                 </div>
 
                                 <div class="min-w-0">
@@ -215,8 +294,8 @@ const isbnValue = computed(() => {
                                         class="w-full h-full object-cover"
                                     />
                                     <span v-else class="text-xs opacity-60">
-                                        No photo
-                                    </span>
+                    No photo
+                  </span>
                                 </div>
 
                                 <div class="min-w-0">
@@ -234,9 +313,7 @@ const isbnValue = computed(() => {
                             No authors assigned
                         </p>
                     </div>
-
                 </div>
-
             </div>
         </div>
 
@@ -252,9 +329,9 @@ const isbnValue = computed(() => {
             @cancel="requestForm.clearErrors()"
         >
             <div v-if="requestLimitMessage" class="alert alert-warning mt-3">
-                <span>
-                    {{ requestLimitMessage }}
-                </span>
+        <span>
+          {{ requestLimitMessage }}
+        </span>
             </div>
         </ConfirmModal>
 

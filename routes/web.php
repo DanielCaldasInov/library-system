@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\UserController;
 use App\Models\Author;
 use App\Models\Book;
 use App\Models\Publisher;
@@ -44,6 +45,7 @@ Route::middleware([
     Route::resource('books', BookController::class)->except(['index', 'show']);
     Route::resource('authors', AuthorController::class)->except(['index', 'show']);
     Route::resource('publishers', PublisherController::class)->except(['index', 'show']);
+    Route::resource('users', UserController::class);//->only(['index', 'create', 'store','show','edit','update','destroy']);
 
     // Requests admin actions
     Route::patch('requests/{request}/confirm-received', [RequestController::class, 'confirmReceived'])
