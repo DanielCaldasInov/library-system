@@ -1,6 +1,6 @@
 <script setup>
 import { Head, Link, router } from '@inertiajs/vue3'
-import ApplicationMark from "@/Components/ApplicationMark.vue";
+import ApplicationMark from "@/Components/ApplicationMark.vue"
 
 defineProps({
     title: {
@@ -8,6 +8,20 @@ defineProps({
         default: 'InovStore',
     },
 })
+
+const resolveProfilePhotoUrl = (user) => {
+    if (!user) return null
+
+    if (user.profile_photo_url) return user.profile_photo_url
+
+    if (user.profile_photo_path) {
+        const base = window.location.origin.replace(/\/$/, '')
+        const path = String(user.profile_photo_path).replace(/^\//, '')
+        return `${base}/${path}`
+    }
+
+    return null
+}
 </script>
 
 <template>
@@ -29,7 +43,7 @@ defineProps({
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/users" class="btn btn-ghost">Users</Link>
             </div>
 
-            <div class="flex flex-row gap-2">
+            <div class="flex flex-row gap-2 items-center">
                 <template v-if="!$page.props.auth?.user">
                     <Link
                         v-if="$page.props.routes?.canLogin"
@@ -57,7 +71,7 @@ defineProps({
                         Dashboard
                     </Link>
 
-                    <Link :href="route('profile.show') " class="btn btn-secondary">
+                    <Link :href="route('profile.show')" class="btn btn-secondary">
                         Profile
                     </Link>
 
@@ -67,6 +81,17 @@ defineProps({
                     >
                         Logout
                     </button>
+                    <div
+                        v-if="resolveProfilePhotoUrl($page.props.auth.user)"
+                        class="ml-2 w-10 h-10 rounded-full overflow-hidden bg-base-300 flex items-center justify-center"
+                        :title="$page.props.auth.user.name"
+                    >
+                        <img
+                            :src="resolveProfilePhotoUrl($page.props.auth.user)"
+                            :alt="`${$page.props.auth.user.name} profile photo`"
+                            class="w-full h-full object-cover"
+                        />
+                    </div>
                 </template>
             </div>
         </div>
@@ -82,10 +107,10 @@ defineProps({
                 </div>
 
                 <div class="text-sm opacity-70 flex gap-4">
-          <span class="flex items-center gap-2">
-            <span class="text-lg">📚</span>
-            <span>Reading • Learning • Community</span>
-          </span>
+                    <span class="flex items-center gap-2">
+                        <span class="text-lg">📚</span>
+                        <span>Reading • Learning • Community</span>
+                    </span>
                 </div>
 
                 <div class="text-sm opacity-70">

@@ -1,12 +1,18 @@
 <script setup>
-import { Head, Link, useForm } from '@inertiajs/vue3';
-import AuthenticationCard from '@/Components/AuthenticationCard.vue';
-import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue';
-import Checkbox from '@/Components/Checkbox.vue';
-import InputError from '@/Components/InputError.vue';
-import InputLabel from '@/Components/InputLabel.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
-import TextInput from '@/Components/TextInput.vue';
+import { computed } from 'vue'
+import { useForm, Link } from '@inertiajs/vue3'
+
+import AuthenticationCard from '@/Components/AuthenticationCard.vue'
+import AuthenticationCardLogo from '@/Components/AuthenticationCardLogo.vue'
+import Checkbox from '@/Components/Checkbox.vue'
+import InputError from '@/Components/InputError.vue'
+import InputLabel from '@/Components/InputLabel.vue'
+import PrimaryButton from '@/Components/PrimaryButton.vue'
+import TextInput from '@/Components/TextInput.vue'
+
+const props = defineProps({
+    terms: Boolean,
+})
 
 const form = useForm({
     name: '',
@@ -14,21 +20,23 @@ const form = useForm({
     password: '',
     password_confirmation: '',
     terms: false,
-});
+    photo: null, // ✅ obrigatório agora
+})
 
 const submit = () => {
     form.post(route('register'), {
+        forceFormData: true, // ✅ necessário para upload
         onFinish: () => form.reset('password', 'password_confirmation'),
-    });
-};
+    })
+}
+
+const termsEnabled = computed(() => props.terms)
 </script>
 
 <template>
-    <Head title="Register" />
-
     <AuthenticationCard>
         <template #logo>
-            <AuthenticationCardLogo/>
+            <AuthenticationCardLogo />
         </template>
 
         <form @submit.prevent="submit">
@@ -60,6 +68,25 @@ const submit = () => {
             </div>
 
             <div class="mt-4">
+                <InputLabel for="photo" value="Profile photo" />
+
+                <input
+                    id="photo"
+                    type="file"
+                    accept="image/*"
+                    class="mt-1 block w-full file-input file-input-bordered"
+                    required
+                    @change="form.photo = $event.target.files[0]"
+                />
+
+                <InputError class="mt-2" :message="form.errors.photo" />
+
+                <p class="text-xs opacity-60 mt-1">
+                    Required. Upload a profile photo (jpg, png, webp).
+                </p>
+            </div>
+
+            <div class="mt-4">
                 <InputLabel for="password" value="Password" />
                 <TextInput
                     id="password"
@@ -85,21 +112,40 @@ const submit = () => {
                 <InputError class="mt-2" :message="form.errors.password_confirmation" />
             </div>
 
-            <div v-if="$page.props.jetstream.hasTermsAndPrivacyPolicyFeature" class="mt-4">
+            <div v-if="termsEnabled" class="mt-4">
                 <InputLabel for="terms">
                     <div class="flex items-center">
                         <Checkbox id="terms" v-model:checked="form.terms" name="terms" required />
 
                         <div class="ms-2">
-                            I agree to the <a target="_blank" :href="route('terms.show')" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Terms of Service</a> and <a target="_blank" :href="route('policy.show')" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">Privacy Policy</a>
+                            I agree to the
+                            <a
+                                target="_blank"
+                                :href="route('terms.show')"
+                                class="underline text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                Terms of Service
+                            </a>
+                            and
+                            <a
+                                target="_blank"
+                                :href="route('policy.show')"
+                                class="underline text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                            >
+                                Privacy Policy
+                            </a>
                         </div>
                     </div>
-                    <InputError class="mt-2" :message="form.errors.terms" />
                 </InputLabel>
+
+                <InputError class="mt-2" :message="form.errors.terms" />
             </div>
 
             <div class="flex items-center justify-end mt-4">
-                <Link :href="route('login')" class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                <Link
+                    :href="route('login')"
+                    class="underline text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
                     Already registered?
                 </Link>
 

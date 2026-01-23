@@ -43,8 +43,12 @@ class HandleInertiaRequests extends Middleware
                 'user' => $user ? [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'email' => $user->email,
                     'role' => $user->role?->name,
                     'is_admin' => $user->isAdmin(),
+
+                    'profile_photo_url' => $user->profile_photo_url,
+                    'profile_photo_path' => $user->profile_photo_path,
                 ] : null,
             ],
             'routes' => [

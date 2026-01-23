@@ -165,6 +165,12 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
+        if (is_null($user->profile_photo_path)) {
+            throw ValidationException::withMessages([
+                'book_id' => 'You must upload a profile photo before creating a request.',
+            ]);
+        }
+
         $data = $request->validate([
             'book_id' => ['required', 'integer', 'exists:books,id'],
         ]);
@@ -201,8 +207,6 @@ class RequestController extends Controller
         // Next sequential number
         $nextNumber = (BookRequest::max('number') ?? 0) + 1;
 
-        //TODO: Add verification for user photo
-
         $req = BookRequest::create([
             'number' => $nextNumber,
 
@@ -228,6 +232,7 @@ class RequestController extends Controller
             ->route('requests.index')
             ->with('success', 'Request created successfully.');
     }
+
 
     public function show(BookRequest $request)
     {

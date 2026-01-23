@@ -26,7 +26,7 @@ class RequestEmailService
         foreach ($admins as $admin) {
             $admin->notify(
                 (new RequestCreatedNotification($request, 'admin'))
-                    ->delay(now()->addSeconds(12)) //Delay fixo de 12 segundos devido ao MailTrap
+                    ->delay(now()->addSeconds(12)) //Fixed delay of 12 seconds for MailTrap
             );
         }
     }
