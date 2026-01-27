@@ -94,25 +94,34 @@ class BookController extends Controller
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'isbn' => ['required', 'digits:13', 'unique:books,isbn'],
-            'price' => ['nullable', 'numeric', 'min:1'],
-            'bibliography' => ['nullable', 'string'],
+            'isbn' => [
+                'required',
+                'string',
+                'min:10',
+                'max:13',
+                'regex:/^\d{10}(\d{3})?$/',
+                'unique:books,ISBN',
+            ],
+            'price' => ['required', 'numeric', 'min:1'],
+            'bibliography' => ['required', 'string'],
             'cover' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'publisher_id' => ['required', 'integer', 'exists:publishers,id'],
             'authors' => ['required', 'array', 'min:1'],
             'authors.*' => ['integer', 'exists:authors,id'],
         ]);
 
+        $isbn = preg_replace('/\D+/', '', $validated['isbn']);
+
         $coverPath = null;
         if ($request->hasFile('cover')) {
-            $coverPath = '/storage/'.$request->file('cover')->store('books/covers', 'public');
+            $coverPath = '/storage/' . $request->file('cover')->store('books/covers', 'public');
         }
 
         $book = Book::create([
             'name' => $validated['name'],
-            'isbn' => $validated['isbn'],
-            'price' => $validated['price'] ?? null,
-            'bibliography' => $validated['bibliography'] ?? null,
+            'ISBN' => $isbn,
+            'price' => $validated['price'],
+            'bibliography' => $validated['bibliography'],
             'cover' => $coverPath,
             'publisher_id' => $validated['publisher_id'],
         ]);

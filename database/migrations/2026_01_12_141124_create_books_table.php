@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('books', function (Blueprint $table) {
             $table->id();
-            $table->string('ISBN',13)->unique();
+            $table->string('ISBN', 13)->unique();
             $table->string('name');
             $table->foreignIdFor(Publisher::class)->constrained()->cascadeOnDelete();
             $table->text('bibliography');

@@ -99,10 +99,12 @@ const submit = () => {
                             v-model="form.isbn"
                             type="text"
                             inputmode="numeric"
-                            pattern="\d{13}"
+                            pattern="\d{10}(\d{3})?"
+                            minlength="10"
                             maxlength="13"
                             class="input input-bordered w-full text-black rounded-lg"
-                            placeholder="13 numerics characters..."
+                            placeholder="ISBN (10 or 13 digits without special characters)"
+                            @input="form.isbn = form.isbn.replace(/\D+/g, '')"
                         />
 
                         <p v-if="form.errors.isbn" class="text-red-400 text-sm mt-1">
