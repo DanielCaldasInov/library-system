@@ -6,7 +6,9 @@ use App\Exports\BooksExport;
 use App\Models\Author;
 use App\Models\Book;
 use App\Models\Publisher;
+use App\Services\GoogleBooks\GoogleBooksClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -272,5 +274,202 @@ class BookController extends Controller
             ),
             'books.xlsx'
         );
+    }
+
+    public function importIndex(Request $request)
+    {
+        $client = GoogleBooksClient::make();
+
+        $apiOk = $client->ping();
+
+        $filters = [
+            'title' => (string) $request->get('title', ''),
+            'author' => (string) $request->get('author', ''),
+            'publisher' => (string) $request->get('publisher', ''),
+            'isbn' => (string) $request->get('isbn', ''),
+            'per_page' => (int) $request->get('per_page', 20),
+        ];
+
+        $perPage = max(1, min((int) $filters['per_page'], 40));
+        $page = max(1, (int) $request->get('page', 1));
+
+        $capTotal = (int) $request->get('cap', 200);
+        $capTotal = max(1, $capTotal);
+
+        $results = [];
+        $totalItems = 0;
+
+        $meta = [
+            'current_page' => $page,
+            'last_page' => 1,
+            'per_page' => $perPage,
+            'total' => 0,
+            'from' => 0,
+            'to' => 0,
+        ];
+
+        $hasAnyFilter = trim($filters['title'] . $filters['author'] . $filters['publisher'] . $filters['isbn']) !== '';
+
+        if ($apiOk && $hasAnyFilter) {
+            $parts = [];
+
+            if ($filters['isbn'] !== '') {
+                $isbnDigits = preg_replace('/\D+/', '', $filters['isbn']) ?? '';
+                if ($isbnDigits !== '') {
+                    $parts[] = 'isbn:' . $isbnDigits;
+                }
+            }
+
+            if ($filters['title'] !== '') {
+                $parts[] = 'intitle:"' . $filters['title'] . '"';
+            }
+
+            if ($filters['author'] !== '') {
+                $parts[] = 'inauthor:"' . $filters['author'] . '"';
+            }
+
+            if ($filters['publisher'] !== '') {
+                $parts[] = 'inpublisher:"' . $filters['publisher'] . '"';
+            }
+
+            $q = trim(implode(' ', $parts));
+
+            if ($q !== '') {
+                $startIndex = ($page - 1) * $perPage;
+
+                $json = $client->search(
+                    q: $q,
+                    maxResults: $perPage,
+                    startIndex: $startIndex,
+                    country: 'PT',
+                    capTotal: $capTotal
+                );
+
+                $items = $json['items'] ?? [];
+                $totalItems = (int) ($json['totalItems'] ?? 0);
+
+                $totalCapped = (int) ($json['totalItemsCapped'] ?? min($totalItems, $capTotal));
+                $lastPageCapped = (int) ($json['lastPageCapped'] ?? max(1, (int) ceil($totalCapped / $perPage)));
+                $pageCapped = (int) ($json['pageCapped'] ?? $page);
+
+                $results = collect($items)
+                    ->map(fn ($item) => $client->normalizeVolume($item))
+                    ->values()
+                    ->all();
+
+                $from = $totalCapped > 0 ? min((($pageCapped - 1) * $perPage) + 1, $totalCapped) : 0;
+                $to = $totalCapped > 0 ? min((($pageCapped - 1) * $perPage) + count($results), $totalCapped) : 0;
+
+                $meta = [
+                    'current_page' => $pageCapped,
+                    'last_page' => $lastPageCapped,
+                    'per_page' => $perPage,
+                    'total' => $totalCapped,
+                    'from' => $from,
+                    'to' => $to,
+                ];
+            }
+        }
+
+        return Inertia::render('Books/Import', [
+            'apiOk' => $apiOk,
+            'filters' => [
+                'title' => $filters['title'],
+                'author' => $filters['author'],
+                'publisher' => $filters['publisher'],
+                'isbn' => $filters['isbn'],
+                'per_page' => $perPage,
+            ],
+            'results' => $results,
+            'totalItems' => $totalItems,
+            'meta' => $meta,
+        ]);
+    }
+
+    public function importStore(Request $request)
+    {
+        $data = $request->validate([
+            'volume_ids' => ['required', 'array', 'min:1'],
+            'volume_ids.*' => ['string'],
+        ]);
+
+        $client = GoogleBooksClient::make();
+
+        if (! $client->ping()) {
+            return back()->with('error', 'Google Books API is unavailable right now.');
+        }
+
+        $imported = 0;
+        $skipped = 0;
+
+        $volumeIds = array_values(array_unique(array_filter($data['volume_ids'])));
+
+        foreach ($volumeIds as $volumeId) {
+            try {
+                $raw = $client->getVolume($volumeId, 'PT');
+                $n = $client->normalizeVolume($raw);
+
+                $isbn = $n['ISBN'] ?? null;
+                if (!is_string($isbn) || $isbn === '') {
+                    $skipped++;
+                    continue;
+                }
+
+                $already = Book::query()->where('ISBN', $isbn)->exists();
+                if ($already) {
+                    $skipped++;
+                    continue;
+                }
+
+                DB::transaction(function () use ($n, &$imported) {
+
+                    $publisherName = $n['publisher_name'] ?? 'Unknown';
+
+                    $publisher = Publisher::firstOrCreate(
+                        ['name' => $publisherName],
+                        ['logo' => 'http://picsum.photos/seed/' . rand(0, 999) . '/100']
+                    );
+
+                    $cover = $n['cover'] ?: ('http://picsum.photos/seed/' . rand(0, 999) . '/100');
+
+                    $book = Book::create([
+                        'ISBN' => $n['ISBN'],
+                        'name' => $n['name'] ?? 'Untitled',
+                        'publisher_id' => $publisher->id,
+                        'bibliography' => $n['bibliography'] ?? '—',
+                        'cover' => $cover,
+                        'price' => (float) ($n['price'] ?? random_int(15, 200)),
+                    ]);
+
+                    $authorIds = [];
+                    foreach (($n['authors'] ?? []) as $authorName) {
+                        if (!is_string($authorName) || trim($authorName) === '') {
+                            continue;
+                        }
+
+                        $author = Author::firstOrCreate(
+                            ['name' => trim($authorName)],
+                            ['photo' => 'http://picsum.photos/seed/' . rand(0, 999) . '/100']
+                        );
+
+                        $authorIds[] = $author->id;
+                    }
+
+                    if (!empty($authorIds)) {
+                        $book->authors()->sync($authorIds);
+                    }
+
+                    $imported++;
+                });
+
+            } catch (\Throwable $e) {
+                $skipped++;
+                continue;
+            }
+        }
+
+        return redirect()
+            ->route('books.index')
+            ->with('success', "Import finished: {$imported} imported, {$skipped} skipped.");
     }
 }

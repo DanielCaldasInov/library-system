@@ -82,6 +82,15 @@ const availabilityLabel = (book) => {
                         Export to Excel
                     </a>
 
+                    <!-- ✅ NEW: Import button (admin only) -->
+                    <a
+                        v-if="$page.props.auth?.user?.is_admin"
+                        :href="route('books.import.index')"
+                        class="btn bg-gray-700 hover:bg-black"
+                    >
+                        Import Books
+                    </a>
+
                     <a
                         v-if="$page.props.auth?.user?.is_admin"
                         :href="route('books.create')"

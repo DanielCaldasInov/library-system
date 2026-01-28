@@ -41,6 +41,11 @@ Route::middleware([
     //Exports
     Route::get('/books/export', [BookController::class, 'export'])->name('books.export');
 
+    //Imports
+    Route::get('/books/import', [BookController::class, 'importIndex'])->name('books.import.index');
+    Route::post('/books/import', [BookController::class, 'importStore'])->name('books.import.store');
+
+
     // CRUDs
     Route::resource('books', BookController::class)->except(['index', 'show']);
     Route::resource('authors', AuthorController::class)->except(['index', 'show']);
