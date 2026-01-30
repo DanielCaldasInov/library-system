@@ -29,28 +29,32 @@ const props = defineProps({
             </div>
 
             <div class="w-full max-w-6xl mx-auto space-y-4">
+                <!-- ✅ SINGLE wrapper -->
                 <div class="bg-gray-800 p-4 rounded-lg">
-                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <div class="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <!-- Search -->
+                        <div class="w-full lg:flex-1">
                             <SearchForm
+                                embedded
                                 action="/users"
                                 :filters="filters"
                                 :options="[
                                   { value: 'name', label: 'Name' }
                                 ]"
-                                class="w-full"
                             />
                         </div>
-                        <form method="get" action="/users" class="flex items-center gap-3">
+
+                        <!-- Role -->
+                        <form method="get" action="/users" class="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-3">
                             <input type="hidden" name="search" :value="filters.search ?? ''" />
 
-                            <span class="text-white font-medium">
+                            <span class="text-white font-medium whitespace-nowrap">
                                 Role
                             </span>
 
                             <select
                                 name="role_id"
-                                class="select select-bordered bg-white text-black min-w-[140px]"
+                                class="select select-bordered bg-white text-black w-full lg:w-[220px]"
                                 @change="$event.target.form.submit()"
                             >
                                 <option value="">All</option>
@@ -112,13 +116,14 @@ const props = defineProps({
                                     ? 'badge-warning'
                                     : 'badge-neutral'"
                                 >
-                                  {{ user.role?.name ?? '-' }}
+                                    {{ user.role?.name ?? '-' }}
                                 </span>
                             </td>
 
                             <td class="text-right whitespace-nowrap">
                                 {{ new Date(user.created_at).toLocaleDateString() }}
                             </td>
+
                             <td>
                                 <a
                                     :href="route('users.show', user.id)"
