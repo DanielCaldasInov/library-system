@@ -14,28 +14,56 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $search = $request->string('search')->toString();
-        $roleId = $request->integer('role_id') ?: null;
+        $filter = $request->get('filter', 'name');
+
+        $role = $request->get('role', $request->get('status', 'all'));
+
+        $sort = $request->get('sort', 'id');
+        $direction = $request->get('direction', 'desc');
 
         $users = User::query()
             ->with(['role:id,name'])
-            ->when($roleId, fn ($q) => $q->where('role_id', $roleId))
-            ->when($search !== '', fn ($q) => $q->where('name', 'like', '%' . $search . '%'))
-            ->orderByDesc('id')
+            ->when($role !== 'all', function ($q) use ($role) {
+                $q->whereHas('role', fn ($r) => $r->where('name', $role));
+            })
+            ->when($search !== '', function ($q) use ($search, $filter) {
+                if ($filter === 'email') {
+                    $q->where('email', 'like', '%' . $search . '%');
+                    return;
+                }
+
+                $q->where('name', 'like', '%' . $search . '%');
+            })
+            ->when(in_array($sort, ['name', 'email', 'created_at'], true), function ($q) use ($sort, $direction) {
+                $q->orderBy($sort, $direction);
+            }, function ($q) {
+                $q->orderByDesc('id');
+            })
             ->paginate(10)
             ->withQueryString();
 
         return Inertia::render('Users/Index', [
             'users' => $users,
-            'roles' => Role::query()
-                ->select(['id', 'name'])
-                ->orderBy('name')
-                ->get(),
             'filters' => [
                 'search' => $search,
-                'role_id' => $roleId,
+                'filter' => $filter,
+                'role' => $role,
+                'status' => $role,
+            ],
+            'sort' => $sort,
+            'direction' => $direction,
+            'roleOptions' => [
+                ['value' => 'all', 'label' => 'All'],
+                ['value' => 'admin', 'label' => 'Admin'],
+                ['value' => 'citizen', 'label' => 'Citizen'],
+            ],
+            'searchOptions' => [
+                ['value' => 'name', 'label' => 'Name'],
+                ['value' => 'email', 'label' => 'Email'],
             ],
         ]);
     }
+
 
     public function show(User $user)
     {

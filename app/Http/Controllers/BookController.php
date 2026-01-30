@@ -25,6 +25,8 @@ class BookController extends Controller
         $sort = $request->get('sort', 'name');
         $direction = $request->get('direction', 'asc');
 
+        $availability = $request->get('availability', '');
+
         $books = Book::query()
             ->with([
                 'authors:id,name',
@@ -38,6 +40,12 @@ class BookController extends Controller
                     ]);
                 }
             ])
+            ->when($availability === 'available', function ($query) {
+                $query->having('active_requests_count', '=', 0);
+            })
+            ->when($availability === 'unavailable', function ($query) {
+                $query->having('active_requests_count', '>', 0);
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 match ($request->filter) {
                     'author' => $query->whereHas('authors', fn ($q) =>
@@ -72,11 +80,16 @@ class BookController extends Controller
 
         return Inertia::render('Books/Index', [
             'books' => $books,
-            'filters' => $request->only(['search', 'filter']),
+            'filters' => [
+                'search' => $request->get('search', ''),
+                'filter' => $request->get('filter', 'name'),
+                'availability' => $availability,
+            ],
             'sort' => $sort,
             'direction' => $direction,
         ]);
     }
+
 
     /**
      * Show the form for creating a new resource.
@@ -157,8 +170,9 @@ class BookController extends Controller
         $bookRequestsCount = (clone $bookRequestsQuery)->count();
 
         $bookRequests = $bookRequestsQuery
-            ->get()
-            ->map(fn (BookRequest $r) => [
+            ->paginate(10)
+            ->withQueryString()
+            ->through(fn (BookRequest $r) => [
                 'id' => $r->id,
                 'number' => $r->number,
                 'status' => $r->status,

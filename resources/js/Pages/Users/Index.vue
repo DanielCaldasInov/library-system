@@ -3,13 +3,36 @@ import PublicLayout from "@/Layouts/PublicLayout.vue"
 import SearchForm from "@/Components/SearchForm.vue"
 import DataTable from "@/Components/DataTable.vue"
 import Pagination from "@/Components/Pagination.vue"
-import { Link } from "@inertiajs/vue3"
+import { Link, router } from "@inertiajs/vue3"
 
 const props = defineProps({
     users: Object,
-    roles: Array,
     filters: Object,
+    sort: String,
+    direction: String,
+    roleOptions: Array,
+    searchOptions: Array,
 })
+
+const sortBy = (field) => {
+    const same = props.sort === field
+    const nextDirection = same ? (props.direction === "asc" ? "desc" : "asc") : "asc"
+
+    router.get("/users", {
+        ...props.filters,
+        sort: field,
+        direction: nextDirection,
+        page: 1,
+    }, {
+        preserveState: true,
+        replace: true,
+    })
+}
+
+const arrow = (field) => {
+    if (props.sort !== field) return ""
+    return props.direction === "asc" ? "▲" : "▼"
+}
 </script>
 
 <template>
@@ -29,48 +52,12 @@ const props = defineProps({
             </div>
 
             <div class="w-full max-w-6xl mx-auto space-y-4">
-                <!-- ✅ SINGLE wrapper -->
-                <div class="bg-gray-800 p-4 rounded-lg">
-                    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                        <!-- Search -->
-                        <div class="w-full lg:flex-1">
-                            <SearchForm
-                                embedded
-                                action="/users"
-                                :filters="filters"
-                                :options="[
-                                  { value: 'name', label: 'Name' }
-                                ]"
-                            />
-                        </div>
-
-                        <!-- Role -->
-                        <form method="get" action="/users" class="w-full lg:w-auto flex items-center justify-between lg:justify-end gap-3">
-                            <input type="hidden" name="search" :value="filters.search ?? ''" />
-
-                            <span class="text-white font-medium whitespace-nowrap">
-                                Role
-                            </span>
-
-                            <select
-                                name="role_id"
-                                class="select select-bordered bg-white text-black w-full lg:w-[220px]"
-                                @change="$event.target.form.submit()"
-                            >
-                                <option value="">All</option>
-
-                                <option
-                                    v-for="role in roles"
-                                    :key="role.id"
-                                    :value="role.id"
-                                    :selected="String(filters.role_id) === String(role.id)"
-                                >
-                                    {{ role.name }}
-                                </option>
-                            </select>
-                        </form>
-                    </div>
-                </div>
+                <SearchForm
+                    action="/users"
+                    :filters="{ ...filters, status: filters.role }"
+                    :options="searchOptions"
+                    :status-options="roleOptions"
+                />
 
                 <div
                     v-if="!users?.data?.length"
@@ -87,14 +74,25 @@ const props = defineProps({
                 <DataTable
                     v-else
                     :data="users"
+                    :filters="{ ...filters, sort, direction }"
                     route="/users"
                 >
                     <template #head>
                         <tr>
-                            <th>Name</th>
-                            <th>Email</th>
+                            <th class="cursor-pointer" @click="sortBy('name')">
+                                Name {{ arrow('name') }}
+                            </th>
+
+                            <th class="cursor-pointer" @click="sortBy('email')">
+                                Email {{ arrow('email') }}
+                            </th>
+
                             <th>Role</th>
-                            <th class="text-right">Registered</th>
+
+                            <th class="text-right cursor-pointer" @click="sortBy('created_at')">
+                                Registered {{ arrow('created_at') }}
+                            </th>
+
                             <th>Actions</th>
                         </tr>
                     </template>
@@ -113,8 +111,8 @@ const props = defineProps({
                                 <span
                                     class="badge"
                                     :class="user.role?.name === 'admin'
-                                    ? 'badge-warning'
-                                    : 'badge-neutral'"
+                                        ? 'badge-warning'
+                                        : 'badge-neutral'"
                                 >
                                     {{ user.role?.name ?? '-' }}
                                 </span>
@@ -140,7 +138,7 @@ const props = defineProps({
                     v-if="users?.data?.length"
                     :meta="users"
                     route="/users"
-                    :filters="filters"
+                    :filters="{ ...filters, sort, direction }"
                 />
             </div>
         </div>

@@ -19,12 +19,11 @@ class RequestController extends Controller
 
         $status = $request->get('status', 'active');
         $perPage = (int) ($request->get('per_page', 10));
-
-        // Filter selector coming from the select in SearchForm
-        // Default is empty -> global search (number/book + citizen only for admins)
         $filter = $request->get('filter', '');
 
-        // Build search options in the backend (Citizen only for admins)
+        $sort = $request->get('sort', 'requested_at');
+        $direction = $request->get('direction', 'desc');
+
         $searchOptions = [
             ['value' => 'number', 'label' => 'Number'],
             ['value' => 'book', 'label' => 'Book'],
@@ -33,7 +32,6 @@ class RequestController extends Controller
         if ($user->isAdmin()) {
             $searchOptions[] = ['value' => 'citizen', 'label' => 'Citizen'];
         } else {
-            // Security: if a citizen tries ?filter=citizen in URL, ignore it
             if ($filter === 'citizen') {
                 $filter = '';
             }
@@ -45,28 +43,28 @@ class RequestController extends Controller
                 'book.publisher' => fn ($q) => $q->select(['id', 'name']),
                 'citizen' => fn ($q) => $q->select(['id', 'name', 'email']),
                 'receivedByAdmin' => fn ($q) => $q->select(['id', 'name']),
-            ])
-            ->orderByDesc('requested_at');
+            ]);
 
-        // Citizen: only see own requests
         if (! $user->isAdmin()) {
             $query->where('user_id', $user->id);
         }
 
-        // Status filters
-        if ($status === 'active') {
-            $query->whereIn('status', [BookRequest::STATUS_ACTIVE, BookRequest::STATUS_AWAITING_CONFIRMATION]);
-        } elseif ($status === 'completed') {
-            $query->where('status', BookRequest::STATUS_COMPLETED);
-        }
-        // if status === 'all' -> no extra filter (admin can use it)
+        $allowedStatuses = $user->isAdmin()
+            ? ['all', 'active', 'awaiting_confirmation', 'completed', 'canceled']
+            : ['active', 'awaiting_confirmation', 'completed'];
 
-        // Search
+        if (! in_array($status, $allowedStatuses, true)) {
+            $status = $user->isAdmin() ? 'all' : 'active';
+        }
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+
         if ($request->filled('search')) {
             $search = $request->get('search');
 
             $query->where(function ($q) use ($search, $user, $filter) {
-
                 if ($filter === '' || $filter === null) {
                     $q->where('number', 'like', "%{$search}%")
                         ->orWhere('book_name', 'like', "%{$search}%")
@@ -101,6 +99,22 @@ class RequestController extends Controller
             });
         }
 
+        $direction = strtolower($direction) === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'requested_at' || $sort === 'due_at') {
+            $query->orderBy($sort, $direction);
+        } elseif ($sort === 'book') {
+            $query->orderByRaw("COALESCE(book_name, '') {$direction}");
+        } elseif ($sort === 'citizen') {
+            if ($user->isAdmin()) {
+                $query->orderByRaw("COALESCE(citizen_name, '') {$direction}");
+            } else {
+                $query->orderByDesc('requested_at');
+            }
+        } else {
+            $query->orderByDesc('requested_at');
+        }
+
         $requests = $query->paginate($perPage)->withQueryString();
 
         $stats = null;
@@ -129,8 +143,23 @@ class RequestController extends Controller
                 'filter' => $filter,
                 'per_page' => $perPage,
             ],
+            'sort' => $sort,
+            'direction' => $direction,
             'stats' => $stats,
             'searchOptions' => $searchOptions,
+            'statusOptions' => $user->isAdmin()
+                ? [
+                    ['value' => 'all', 'label' => 'All'],
+                    ['value' => 'active', 'label' => 'Active'],
+                    ['value' => 'awaiting_confirmation', 'label' => 'Awaiting confirmation'],
+                    ['value' => 'completed', 'label' => 'Completed'],
+                    ['value' => 'canceled', 'label' => 'Canceled'],
+                ]
+                : [
+                    ['value' => 'active', 'label' => 'Active'],
+                    ['value' => 'awaiting_confirmation', 'label' => 'Awaiting confirmation'],
+                    ['value' => 'completed', 'label' => 'Completed'],
+                ],
         ]);
     }
 

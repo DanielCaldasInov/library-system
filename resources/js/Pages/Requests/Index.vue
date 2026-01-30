@@ -12,6 +12,9 @@ const props = defineProps({
     filters: Object,
     stats: Object,
     searchOptions: Array,
+    statusOptions: Array,
+    sort: String,
+    direction: String,
 })
 
 const confirmModal = ref(null)
@@ -38,17 +41,6 @@ const confirmCancel = () => {
     })
 }
 
-const setStatusFilter = (status) => {
-    router.get('/requests', {
-        ...props.filters,
-        status,
-        page: 1,
-    }, {
-        preserveState: true,
-        replace: true,
-    })
-}
-
 const statusLabel = (status) => {
     if (status === 'active') return 'Active'
     if (status === 'awaiting_confirmation') return 'Awaiting confirmation'
@@ -64,12 +56,31 @@ const statusBadgeClass = (status) => {
     if (status === 'canceled') return 'badge badge-error'
     return 'badge'
 }
+
+const sortBy = (field) => {
+    const same = props.sort === field
+    const nextDirection = same ? (props.direction === 'asc' ? 'desc' : 'asc') : 'asc'
+
+    router.get('/requests', {
+        ...props.filters,
+        sort: field,
+        direction: nextDirection,
+        page: 1,
+    }, {
+        preserveState: true,
+        replace: true,
+    })
+}
+
+const arrow = (field) => {
+    if (props.sort !== field) return ''
+    return props.direction === 'asc' ? '▲' : '▼'
+}
 </script>
 
 <template>
-    <public-layout title="Requests">
+    <PublicLayout title="Requests">
         <div class="p-6 flex flex-col items-center">
-
             <div class="w-full max-w-6xl mx-auto flex items-center justify-between mb-6">
                 <h1 class="text-3xl font-bold bg-gray-800 px-6 py-4 rounded-lg">
                     Requests
@@ -86,8 +97,6 @@ const statusBadgeClass = (status) => {
             </div>
 
             <div class="w-full max-w-6xl mx-auto space-y-4">
-
-                <!-- Admin stats -->
                 <div
                     v-if="$page.props.auth?.user?.is_admin && stats"
                     class="grid grid-cols-1 sm:grid-cols-3 gap-4"
@@ -108,47 +117,13 @@ const statusBadgeClass = (status) => {
                     </div>
                 </div>
 
-                <!-- Search -->
                 <SearchForm
                     action="/requests"
-                    :filters="filters"
+                    :filters="{ ...filters, sort, direction }"
                     :options="searchOptions"
+                    :status-options="statusOptions"
                 />
 
-                <!-- Status filter buttons -->
-                <div class="flex flex-wrap gap-4 bg-gray-800 px-4 py-3 rounded-lg">
-                    <button
-                        v-if="$page.props.auth?.user?.is_admin"
-                        type="button"
-                        class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2"
-                        :class="filters?.status === 'all' ? 'btn-primary' : 'btn-outline'"
-                        @click="setStatusFilter('all')"
-                    >
-                        All
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2"
-                        :class="(filters?.status ?? 'active') === 'active' ? 'btn-primary' : 'btn-outline'"
-                        @click="setStatusFilter('active')"
-                    >
-                        Active
-                    </button>
-
-                    <button
-                        type="button"
-                        class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2"
-                        :class="filters?.status === 'completed' ? 'btn-primary' : 'btn-outline'"
-                        @click="setStatusFilter('completed')"
-                    >
-                        Completed
-                    </button>
-
-
-                </div>
-
-                <!-- Empty state -->
                 <div
                     v-if="!requests?.data?.length"
                     class="bg-gray-800 rounded-lg p-8 text-center"
@@ -168,23 +143,38 @@ const statusBadgeClass = (status) => {
                     </a>
                 </div>
 
-                <!-- Table -->
                 <DataTable
                     v-else
                     :data="requests"
-                    :sort="filters?.sort"
-                    :direction="filters?.direction"
-                    :filters="filters"
+                    :filters="{ ...filters, sort, direction }"
                     route="/requests"
                 >
                     <template #head>
                         <tr>
                             <th>#</th>
-                            <th>Book</th>
-                            <th v-if="$page.props.auth?.user?.is_admin">Citizen</th>
+
+                            <th class="cursor-pointer" @click="sortBy('book')">
+                                Book {{ arrow('book') }}
+                            </th>
+
+                            <th
+                                v-if="$page.props.auth?.user?.is_admin"
+                                class="cursor-pointer"
+                                @click="sortBy('citizen')"
+                            >
+                                Citizen {{ arrow('citizen') }}
+                            </th>
+
                             <th>Status</th>
-                            <th>Requested</th>
-                            <th>Due</th>
+
+                            <th class="cursor-pointer" @click="sortBy('requested_at')">
+                                Requested {{ arrow('requested_at') }}
+                            </th>
+
+                            <th class="cursor-pointer" @click="sortBy('due_at')">
+                                Due {{ arrow('due_at') }}
+                            </th>
+
                             <th class="text-right">Actions</th>
                         </tr>
                     </template>
@@ -240,12 +230,11 @@ const statusBadgeClass = (status) => {
                     </template>
                 </DataTable>
 
-                <!-- Pagination (only when there are rows) -->
                 <Pagination
                     v-if="requests?.data?.length"
                     :meta="requests"
                     route="/requests"
-                    :filters="filters"
+                    :filters="{ ...filters, sort, direction }"
                 />
             </div>
 
@@ -260,5 +249,5 @@ const statusBadgeClass = (status) => {
                 @cancel="onCancel"
             />
         </div>
-    </public-layout>
+    </PublicLayout>
 </template>

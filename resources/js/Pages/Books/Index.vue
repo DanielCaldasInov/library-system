@@ -38,11 +38,7 @@ const deleteBlockedByActiveRequest = computed(() => {
 
 const confirmDelete = () => {
     if (!bookToDelete.value) return
-
-    // proteção extra (mesmo com botão disabled)
-    if ((bookToDelete.value.active_requests_count ?? 0) > 0) {
-        return
-    }
+    if ((bookToDelete.value.active_requests_count ?? 0) > 0) return
 
     router.delete(route("books.destroy", bookToDelete.value.id), {
         preserveScroll: true,
@@ -62,12 +58,27 @@ const availabilityLabel = (book) => {
     const busy = (book?.active_requests_count ?? 0) > 0
     return busy ? "Unavailable" : "Available"
 }
+
+const onAvailabilityChange = (e) => {
+    router.get(
+        "/books",
+        {
+            ...props.filters,
+            availability: e.target.value,
+            sort: props.sort,
+            direction: props.direction,
+        },
+        {
+            preserveState: true,
+            replace: true,
+        }
+    )
+}
 </script>
 
 <template>
-    <public-layout title="Books">
+    <PublicLayout title="Books">
         <div class="p-6 flex flex-col items-center">
-
             <div class="w-full max-w-6xl mx-auto flex items-center justify-between mb-6">
                 <h1 class="text-3xl font-bold bg-gray-800 px-6 py-4 rounded-lg">
                     Books
@@ -82,7 +93,6 @@ const availabilityLabel = (book) => {
                         Export to Excel
                     </a>
 
-                    <!-- ✅ NEW: Import button (admin only) -->
                     <a
                         v-if="$page.props.auth?.user?.is_admin"
                         :href="route('books.import.index')"
@@ -101,12 +111,40 @@ const availabilityLabel = (book) => {
                 </div>
             </div>
 
-            <div class="w-full max-w-6xl mx-auto">
-                <SearchForm
-                    action="/books"
-                    :filters="filters"
-                    :options="searchOptions"
-                />
+            <div class="w-full max-w-6xl mx-auto space-y-4">
+                <div class="bg-gray-800 p-4 rounded-lg">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                        <div class="w-full md:flex-1 md:pr-4">
+                            <SearchForm
+                                action="/books"
+                                :filters="filters"
+                                :options="searchOptions"
+                            />
+                        </div>
+
+                        <form method="get" action="/books" class="flex items-center gap-3 md:pt-4">
+                            <input type="hidden" name="search" :value="filters.search ?? ''" />
+                            <input type="hidden" name="filter" :value="filters.filter ?? 'name'" />
+                            <input type="hidden" name="sort" :value="sort" />
+                            <input type="hidden" name="direction" :value="direction" />
+
+                            <span class="text-white font-medium">
+                                Availability
+                            </span>
+
+                            <select
+                                name="availability"
+                                class="select select-bordered bg-white text-black min-w-[160px]"
+                                :value="filters.availability ?? ''"
+                                @change="onAvailabilityChange"
+                            >
+                                <option value="">All</option>
+                                <option value="available">Available</option>
+                                <option value="unavailable">Unavailable</option>
+                            </select>
+                        </form>
+                    </div>
+                </div>
 
                 <DataTable
                     :data="books"
@@ -223,5 +261,5 @@ const availabilityLabel = (book) => {
                 </span>
             </div>
         </ConfirmModal>
-    </public-layout>
+    </PublicLayout>
 </template>

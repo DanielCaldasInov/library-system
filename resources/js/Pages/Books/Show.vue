@@ -2,12 +2,13 @@
 import { Link, router, usePage, useForm } from '@inertiajs/vue3'
 import PublicLayout from "@/Layouts/PublicLayout.vue"
 import ConfirmModal from "@/Components/ConfirmModal.vue"
+import Pagination from "@/Components/Pagination.vue"
 import { ref, computed } from "vue"
 
 const props = defineProps({
     book: Object,
     isAvailable: Boolean,
-    bookRequests: Array,
+    bookRequests: Object, // paginator
     bookRequestsCount: Number,
 })
 
@@ -34,9 +35,7 @@ const confirmDelete = () => {
 const isLoggedIn = computed(() => !!page.props.auth?.user)
 const isAdmin = computed(() => !!page.props.auth?.user?.is_admin)
 
-const canRequest = computed(() =>
-    isLoggedIn.value && props.isAvailable
-)
+const canRequest = computed(() => isLoggedIn.value && props.isAvailable)
 
 const openRequestModal = () => {
     requestForm.clearErrors()
@@ -61,8 +60,8 @@ const requestBook = () => {
 }
 
 const isbnValue = computed(() => {
-    const b = props.book ?? {}
-    return (b.ISBN)
+    const fmt = props.book ?? {}
+    return fmt.ISBN ?? '—'
 })
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : "—")
@@ -96,12 +95,17 @@ const statusLabel = (status) => {
             return status ?? "—"
     }
 }
+
+const totalRequests = computed(() => {
+    return props.bookRequestsCount ?? props.bookRequests?.total ?? 0
+})
 </script>
 
 <template>
     <PublicLayout title="Book Details">
         <div class="p-6 flex flex-col items-center">
             <div class="w-full max-w-3xl mx-auto bg-gray-800 rounded-lg p-6">
+
                 <div class="flex items-center justify-between mb-6">
                     <h1 class="text-2xl font-bold">
                         Book Details
@@ -156,38 +160,42 @@ const statusLabel = (status) => {
                             class="w-full h-full object-cover"
                         />
                         <span v-else class="text-xs opacity-60">
-              No cover
-            </span>
+                            No cover
+                        </span>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Name</span>
                         <span class="text-white font-bold text-lg">
-              {{ book.name }}
-            </span>
+                            {{ book.name }}
+                        </span>
                     </div>
 
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">ISBN</span>
                         <span class="text-white font-mono">
-              {{ isbnValue }}
-            </span>
+                            {{ isbnValue }}
+                        </span>
                     </div>
+                </div>
 
+                <div class="mb-4">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Price</span>
                         <span class="text-white">
-              ${{ Number(book.price ?? 0).toFixed(2) }}
-            </span>
+                            ${{ Number(book.price ?? 0).toFixed(2) }}
+                        </span>
                     </div>
+                </div>
 
+                <div class="mb-6">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Bibliography</span>
                         <span class="text-white whitespace-pre-line">
-              {{ book.bibliography || '—' }}
-            </span>
+                            {{ book.bibliography || '—' }}
+                        </span>
                     </div>
                 </div>
 
@@ -195,11 +203,11 @@ const statusLabel = (status) => {
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-lg font-bold">Requests history</h2>
                         <span class="text-sm opacity-70">
-                          Total: {{ bookRequestsCount ?? (bookRequests?.length ?? 0) }}
+                            Total: {{ totalRequests }}
                         </span>
                     </div>
 
-                    <div v-if="!bookRequests?.length" class="opacity-60">
+                    <div v-if="!(bookRequests?.data?.length)" class="opacity-60">
                         No requests for this book
                     </div>
 
@@ -215,15 +223,15 @@ const statusLabel = (status) => {
                             </thead>
 
                             <tbody>
-                            <tr v-for="r in bookRequests" :key="r.id">
+                            <tr v-for="r in bookRequests.data" :key="r.id">
                                 <td class="font-mono">
                                     {{ r.number }}
                                 </td>
 
                                 <td>
-                    <span class="badge" :class="statusBadge(r.status)">
-                      {{ statusLabel(r.status) }}
-                    </span>
+                                    <span class="badge" :class="statusBadge(r.status)">
+                                        {{ statusLabel(r.status) }}
+                                    </span>
                                 </td>
 
                                 <td class="whitespace-nowrap">
@@ -237,6 +245,13 @@ const statusLabel = (status) => {
                             </tbody>
                         </table>
                     </div>
+
+                    <Pagination
+                        v-if="bookRequests?.data?.length"
+                        :meta="bookRequests"
+                        :filters="{}"
+                        :route="route('books.show', book.id)"
+                    />
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -256,8 +271,8 @@ const statusLabel = (status) => {
                                         class="w-full h-full object-cover"
                                     />
                                     <span v-else class="text-xs opacity-60">
-                    No logo
-                  </span>
+                                        No logo
+                                    </span>
                                 </div>
 
                                 <div class="min-w-0">
@@ -294,8 +309,8 @@ const statusLabel = (status) => {
                                         class="w-full h-full object-cover"
                                     />
                                     <span v-else class="text-xs opacity-60">
-                    No photo
-                  </span>
+                                        No photo
+                                    </span>
                                 </div>
 
                                 <div class="min-w-0">
@@ -314,6 +329,7 @@ const statusLabel = (status) => {
                         </p>
                     </div>
                 </div>
+
             </div>
         </div>
 
@@ -329,9 +345,9 @@ const statusLabel = (status) => {
             @cancel="requestForm.clearErrors()"
         >
             <div v-if="requestLimitMessage" class="alert alert-warning mt-3">
-        <span>
-          {{ requestLimitMessage }}
-        </span>
+                <span>
+                    {{ requestLimitMessage }}
+                </span>
             </div>
         </ConfirmModal>
 
