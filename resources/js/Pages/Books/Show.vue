@@ -11,6 +11,7 @@ const props = defineProps({
     bookRequests: Object,
     bookRequestsCount: Number,
     reviews: Object,
+    relatedBooks: Array,
 })
 
 const page = usePage()
@@ -387,6 +388,36 @@ const totalRequests = computed(() => {
                                 :filters="{ requests_page: bookRequests?.current_page ?? 1 }"
                                 :route="route('books.show', book.id)"
                             />
+                        </div>
+                    </div>
+                    <div class="bg-gray-900/80 rounded-lg p-4 mt-6 col-span-2">
+                        <h2 class="text-lg font-bold mb-4">Related books</h2>
+
+                        <div v-if="!relatedBooks?.length" class="opacity-70">
+                            No related books found.
+                        </div>
+
+                        <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <Link
+                                v-for="item in relatedBooks"
+                                :key="item.book.id"
+                                :href="route('books.show', item.book.id)"
+                                class="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition"
+                            >
+                                <div class="flex gap-3">
+                                    <div class="w-14 h-14 bg-gray-900/80 rounded overflow-hidden flex items-center justify-center">
+                                        <img v-if="item.book.cover" :src="item.book.cover" class="w-full h-full object-cover"  alt="Book Cover"/>
+                                        <span v-else class="text-xs opacity-60">No cover</span>
+                                    </div>
+
+                                    <div class="min-w-0">
+                                        <p class="font-bold truncate">{{ item.book.name }}</p>
+                                        <p class="text-xs opacity-70 truncate">
+                                            {{ (item.book.authors ?? []).map(a => a.name).join(', ') || '—' }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </Link>
                         </div>
                     </div>
                 </div>

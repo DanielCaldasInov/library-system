@@ -7,8 +7,10 @@ use App\Models\Author;
 use App\Models\Book;
 use App\Models\Publisher;
 use App\Models\Review;
+use App\Services\Books\RelatedBooksService;
 use App\Services\GoogleBooks\GoogleBooksClient;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -18,14 +20,32 @@ use App\Models\Request as BookRequest;
 
 class BookController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    private function relatedCacheKey(Book $book): string
+    {
+        return "related_books:{$book->id}";
+    }
+
+    private function normalizeCoverPath(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        if (str_starts_with($value, '/storage/')) {
+            return ltrim(str_replace('/storage/', '', $value), '/');
+        }
+
+        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
+            return null;
+        }
+
+        return ltrim($value, '/');
+    }
+
     public function index(Request $request)
     {
         $sort = $request->get('sort', 'name');
-        $direction = $request->get('direction', 'asc');
-
+        $direction = strtolower($request->get('direction', 'asc')) === 'desc' ? 'desc' : 'asc';
         $availability = $request->get('availability', '');
 
         $books = Book::query()
@@ -39,28 +59,18 @@ class BookController extends Controller
                         BookRequest::STATUS_ACTIVE,
                         BookRequest::STATUS_AWAITING_CONFIRMATION,
                     ]);
-                }
+                },
             ])
-            ->when($availability === 'available', function ($query) {
-                $query->having('active_requests_count', '=', 0);
-            })
-            ->when($availability === 'unavailable', function ($query) {
-                $query->having('active_requests_count', '>', 0);
-            })
+            ->when($availability === 'available', fn ($q) => $q->having('active_requests_count', '=', 0))
+            ->when($availability === 'unavailable', fn ($q) => $q->having('active_requests_count', '>', 0))
             ->when($request->filled('search'), function ($query) use ($request) {
                 match ($request->filter) {
-                    'author' => $query->whereHas('authors', fn ($q) =>
-                    $q->where('name', 'like', "%{$request->search}%")
-                    ),
-                    'publisher' => $query->whereHas('publisher', fn ($q) =>
-                    $q->where('name', 'like', "%{$request->search}%")
-                    ),
+                    'author' => $query->whereHas('authors', fn ($q) => $q->where('name', 'like', "%{$request->search}%")),
+                    'publisher' => $query->whereHas('publisher', fn ($q) => $q->where('name', 'like', "%{$request->search}%")),
                     default => $query->where('name', 'like', "%{$request->search}%"),
                 };
             })
-            ->when(in_array($sort, ['name', 'price'], true), function ($query) use ($sort, $direction) {
-                $query->orderBy($sort, $direction);
-            })
+            ->when(in_array($sort, ['name', 'price'], true), fn ($q) => $q->orderBy($sort, $direction))
             ->when($sort === 'publisher', function ($query) use ($direction) {
                 $query->join('publishers', 'publishers.id', '=', 'books.publisher_id')
                     ->orderBy('publishers.name', $direction)
@@ -91,10 +101,6 @@ class BookController extends Controller
         ]);
     }
 
-
-    /**
-     * Show the form for creating a new resource.
-     */
     public function create()
     {
         return Inertia::render('Books/Create', [
@@ -103,9 +109,6 @@ class BookController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -128,9 +131,11 @@ class BookController extends Controller
 
         $isbn = preg_replace('/\D+/', '', $validated['isbn']);
 
-        $coverPath = null;
+        $coverUrl = null;
+
         if ($request->hasFile('cover')) {
-            $coverPath = '/storage/' . $request->file('cover')->store('books/covers', 'public');
+            $storedPath = $request->file('cover')->store('books/covers', 'public');
+            $coverUrl = '/storage/' . $storedPath;
         }
 
         $book = Book::create([
@@ -138,21 +143,20 @@ class BookController extends Controller
             'ISBN' => $isbn,
             'price' => $validated['price'],
             'bibliography' => $validated['bibliography'],
-            'cover' => $coverPath,
+            'cover' => $coverUrl,
             'publisher_id' => $validated['publisher_id'],
         ]);
 
         $book->authors()->sync($validated['authors']);
+
+        Cache::forget("related_books:{$book->id}");
 
         return redirect()
             ->route('books.index')
             ->with('success', 'Book created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Book $book)
+    public function show(Book $book, RelatedBooksService $relatedBooks)
     {
         $book->load([
             'publisher',
@@ -198,16 +202,16 @@ class BookController extends Controller
             'bookRequestsCount' => $bookRequestsCount,
             'bookRequests' => $bookRequests,
             'reviews' => $reviews,
+            'relatedBooks' => $relatedBooks->getRelated($book, 6),
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Book $book)
     {
         $book->load(['authors:id', 'publisher:id']);
-        $book->cover_url = $book->cover ? Storage::disk('public')->url($book->cover) : null;
+
+        $coverPath = $this->normalizeCoverPath($book->cover);
+        $book->cover_url = $coverPath ? Storage::disk('public')->url($coverPath) : null;
 
         return Inertia::render('Books/Edit', [
             'book' => $book,
@@ -217,9 +221,6 @@ class BookController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(Request $request, Book $book)
     {
         $validated = $request->validate([
@@ -233,14 +234,18 @@ class BookController extends Controller
             'authors.*' => ['integer', 'exists:authors,id'],
         ]);
 
-        $coverPath = $book->cover;
+        $coverUrl = $book->cover;
 
         if ($request->hasFile('cover')) {
-            if ($book->cover && Storage::disk('public')->exists($book->cover)) {
-                Storage::disk('public')->delete($book->cover);
+            if (is_string($book->cover) && str_starts_with($book->cover, '/storage/')) {
+                $oldPath = str_replace('/storage/', '', $book->cover);
+                if (Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
             }
 
-            $coverPath = '/storage/'.$request->file('cover')->store('books/covers', 'public');
+            $storedPath = $request->file('cover')->store('books/covers', 'public');
+            $coverUrl = '/storage/' . $storedPath;
         }
 
         $book->update([
@@ -248,20 +253,19 @@ class BookController extends Controller
             'isbn' => $validated['isbn'],
             'price' => $validated['price'] ?? null,
             'bibliography' => $validated['bibliography'] ?? null,
-            'cover' => $coverPath,
+            'cover' => $coverUrl,
             'publisher_id' => $validated['publisher_id'],
         ]);
 
         $book->authors()->sync($validated['authors']);
+
+        Cache::forget("related_books:{$book->id}");
 
         return redirect()
             ->route('books.index')
             ->with('success', 'Book updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(Book $book)
     {
         $hasActiveRequests = $book->requests()
@@ -278,18 +282,22 @@ class BookController extends Controller
             );
         }
 
-        if ($book->cover && Storage::disk('public')->exists($book->cover)) {
-            Storage::disk('public')->delete($book->cover);
+        if (is_string($book->cover) && str_starts_with($book->cover, '/storage/')) {
+            $path = str_replace('/storage/', '', $book->cover);
+            if (Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
         }
 
         $book->authors()->detach();
         $book->delete();
 
+        Cache::forget("related_books:{$book->id}");
+
         return redirect()
             ->route('books.index')
             ->with('success', 'Book deleted successfully.');
     }
-
 
     public function export(Request $request)
     {
@@ -437,7 +445,7 @@ class BookController extends Controller
                 $n = $client->normalizeVolume($raw);
 
                 $isbn = $n['ISBN'] ?? null;
-                if (!is_string($isbn) || $isbn === '') {
+                if (! is_string($isbn) || $isbn === '') {
                     $skipped++;
                     continue;
                 }
@@ -449,7 +457,6 @@ class BookController extends Controller
                 }
 
                 DB::transaction(function () use ($n, &$imported) {
-
                     $publisherName = $n['publisher_name'] ?? 'Unknown';
 
                     $publisher = Publisher::firstOrCreate(
@@ -470,7 +477,7 @@ class BookController extends Controller
 
                     $authorIds = [];
                     foreach (($n['authors'] ?? []) as $authorName) {
-                        if (!is_string($authorName) || trim($authorName) === '') {
+                        if (! is_string($authorName) || trim($authorName) === '') {
                             continue;
                         }
 
@@ -482,13 +489,12 @@ class BookController extends Controller
                         $authorIds[] = $author->id;
                     }
 
-                    if (!empty($authorIds)) {
+                    if (! empty($authorIds)) {
                         $book->authors()->sync($authorIds);
                     }
 
                     $imported++;
                 });
-
             } catch (\Throwable $e) {
                 $skipped++;
                 continue;
