@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Services;
+namespace App\Services\Emails;
 
 use App\Models\Request as BookRequest;
 use App\Models\User;

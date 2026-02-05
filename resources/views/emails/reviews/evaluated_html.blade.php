@@ -1,30 +1,31 @@
 @php
     $cover = null;
 
-    if (!empty($coverUrl)) {
-        $cover = str_starts_with($coverUrl, 'http')
-            ? $coverUrl
-            : url($coverUrl);
+    if (!empty($bookCover)) {
+        $cover = str_starts_with($bookCover, 'http')
+            ? $bookCover
+            : url($bookCover);
     }
+
+    $statusLabel = $status === 'active' ? 'Approved' : 'Rejected';
 @endphp
 
     <!doctype html>
 <html lang="en">
 <head>
-    <title></title>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title></title>
 </head>
 <body style="margin:0; padding:0; background:#f5f5f5;">
 <div style="max-width:600px; margin:0 auto; padding:24px;">
     <div style="background:#ffffff; border-radius:10px; padding:24px; font-family: Arial, Helvetica, sans-serif; color:#111827;">
 
         <h2 style="margin:0 0 16px 0;">
-            {{ $audience === 'admin' ? 'New request created' : 'Request confirmed' }}
+            Your review has been {{ strtolower($statusLabel) }}
         </h2>
 
         <p style="margin:0 0 10px 0;">
-            <strong>Request:</strong> #{{ $number }}
+            <strong>Status:</strong> {{ $statusLabel }}
         </p>
 
         <p style="margin:0 0 10px 0;">
@@ -32,33 +33,39 @@
         </p>
 
         <p style="margin:0 0 10px 0;">
-            <strong>Requested at:</strong> {{ $requestedAt }}
+            <strong>Your rating:</strong> {{ $rating }}/5
         </p>
 
-        <p style="margin:0 0 10px 0;">
-            <strong>Due at:</strong> {{ $dueAt }}
-        </p>
+        @if($comment)
+            <p style="margin:0 0 16px 0;">
+                <strong>Your comment:</strong><br>
+                {{ $comment }}
+            </p>
+        @endif
 
-        <p style="margin:0 0 18px 0;">
-            <strong>Status:</strong> {{ $status }}
-        </p>
+        @if($status === 'rejected' && $rejectionReason)
+            <div style="background:#fff7ed; border-left:4px solid #f97316; padding:12px; border-radius:6px; margin-bottom:18px;">
+                <strong>Rejection reason:</strong><br>
+                {{ $rejectionReason }}
+            </div>
+        @endif
 
         @if($cover)
             <div style="text-align:center; margin:18px 0 22px;">
                 <img
                     src="{{ $cover }}"
                     alt="Book cover"
-                    style="width:180px; height:auto; border-radius:12px; display:inline-block;"
+                    style="width:160px; height:auto; border-radius:12px;"
                 >
             </div>
         @endif
 
         <div style="text-align:center; margin-top:18px;">
             <a
-                href="{{ $requestUrl }}"
+                href="{{ $bookUrl }}"
                 style="display:inline-block; background:#111827; color:#ffffff; text-decoration:none; padding:10px 16px; border-radius:8px; font-weight:bold;"
             >
-                View request
+                View book
             </a>
         </div>
 

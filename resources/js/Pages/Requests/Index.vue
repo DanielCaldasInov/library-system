@@ -42,26 +42,26 @@ const confirmCancel = () => {
 }
 
 const statusLabel = (status) => {
-    if (status === 'active') return 'Active'
-    if (status === 'awaiting_confirmation') return 'Awaiting confirmation'
-    if (status === 'completed') return 'Completed'
-    if (status === 'canceled') return 'Canceled'
+    if (status === "active") return "Active"
+    if (status === "awaiting_confirmation") return "Awaiting confirmation"
+    if (status === "completed") return "Completed"
+    if (status === "canceled") return "Canceled"
     return status
 }
 
 const statusBadgeClass = (status) => {
-    if (status === 'active') return 'badge badge-success'
-    if (status === 'awaiting_confirmation') return 'badge badge-warning'
-    if (status === 'completed') return 'badge badge-neutral'
-    if (status === 'canceled') return 'badge badge-error'
-    return 'badge'
+    if (status === "active") return "badge badge-success"
+    if (status === "awaiting_confirmation") return "badge badge-warning"
+    if (status === "completed") return "badge badge-neutral"
+    if (status === "canceled") return "badge badge-error"
+    return "badge"
 }
 
 const sortBy = (field) => {
     const same = props.sort === field
-    const nextDirection = same ? (props.direction === 'asc' ? 'desc' : 'asc') : 'asc'
+    const nextDirection = same ? (props.direction === "asc" ? "desc" : "asc") : "asc"
 
-    router.get('/requests', {
+    router.get("/requests", {
         ...props.filters,
         sort: field,
         direction: nextDirection,
@@ -73,8 +73,8 @@ const sortBy = (field) => {
 }
 
 const arrow = (field) => {
-    if (props.sort !== field) return ''
-    return props.direction === 'asc' ? '▲' : '▼'
+    if (props.sort !== field) return ""
+    return props.direction === "asc" ? "▲" : "▼"
 }
 </script>
 
@@ -186,11 +186,11 @@ const arrow = (field) => {
                             </td>
 
                             <td class="truncate max-w-xs">
-                                {{ req.book_name ?? req.book?.name ?? 'Deleted book' }}
+                                {{ req.book_name ?? req.book?.name ?? "Deleted book" }}
                             </td>
 
                             <td v-if="$page.props.auth?.user?.is_admin" class="truncate max-w-xs">
-                                {{ req.citizen_name ?? req.citizen?.name ?? 'Deleted user' }}
+                                {{ req.citizen_name ?? req.citizen?.name ?? "Deleted user" }}
                             </td>
 
                             <td>
@@ -200,11 +200,11 @@ const arrow = (field) => {
                             </td>
 
                             <td class="whitespace-nowrap">
-                                {{ req.requested_at ? new Date(req.requested_at).toLocaleDateString() : '-' }}
+                                {{ req.requested_at ? new Date(req.requested_at).toLocaleDateString() : "-" }}
                             </td>
 
                             <td class="whitespace-nowrap">
-                                {{ req.due_at ? new Date(req.due_at).toLocaleDateString() : '-' }}
+                                {{ req.due_at ? new Date(req.due_at).toLocaleDateString() : "-" }}
                             </td>
 
                             <td class="text-right">

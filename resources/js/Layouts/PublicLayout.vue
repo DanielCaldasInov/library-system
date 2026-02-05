@@ -40,6 +40,7 @@ const resolveProfilePhotoUrl = (user) => {
                 <Link href="/authors" class="btn btn-ghost">Authors</Link>
                 <Link href="/publishers" class="btn btn-ghost">Publishers</Link>
                 <Link v-if="$page.props.auth?.user" href="/requests" class="btn btn-ghost">Requests</Link>
+                <Link v-if="$page.props.auth?.user?.is_admin" href="/reviews" class="btn btn-ghost">Reviews</Link>
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/users" class="btn btn-ghost">Users</Link>
             </div>
 

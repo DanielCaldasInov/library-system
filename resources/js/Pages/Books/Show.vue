@@ -8,8 +8,9 @@ import { ref, computed } from "vue"
 const props = defineProps({
     book: Object,
     isAvailable: Boolean,
-    bookRequests: Object, // paginator
+    bookRequests: Object,
     bookRequestsCount: Number,
+    reviews: Object,
 })
 
 const page = usePage()
@@ -63,6 +64,15 @@ const isbnValue = computed(() => {
     const fmt = props.book ?? {}
     return fmt.ISBN ?? '—'
 })
+
+const renderStars = (rating) => {
+    const stars = []
+    for (let i = 1; i <= 5; i++) {
+        stars.push(i <= rating)
+    }
+    return stars
+}
+
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : "—")
 
@@ -247,9 +257,9 @@ const totalRequests = computed(() => {
                     </div>
 
                     <Pagination
-                        v-if="bookRequests?.data?.length"
+                        v-if="bookRequests?.data?.length && (bookRequests.last_page ?? 1) > 1"
                         :meta="bookRequests"
-                        :filters="{}"
+                        :filters="{ reviews_page: reviews?.current_page ?? 1 }"
                         :route="route('books.show', book.id)"
                     />
                 </div>
@@ -327,6 +337,57 @@ const totalRequests = computed(() => {
                         <p v-else class="opacity-60">
                             No authors assigned
                         </p>
+                    </div>
+
+                    <div class="bg-gray-900/80 rounded-lg p-4 mt-6 col-span-2">
+                        <h2 class="text-lg font-bold mb-4">
+                            Reviews
+                        </h2>
+
+                        <div v-if="!reviews?.data?.length" class="opacity-70">
+                            There are no reviews for this book yet.
+                        </div>
+
+                        <div v-else class="space-y-4">
+                            <div
+                                v-for="review in reviews.data"
+                                :key="review.id"
+                                class="bg-gray-800 rounded-lg p-4"
+                            >
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-3">
+                                        <img
+                                            :src="review.user?.profile_photo_url"
+                                            class="w-8 h-8 rounded-full object-cover bg-gray-700"
+                                         alt="Profile Photo"/>
+                                        <span class="font-semibold text-white">
+                                            {{ review.user?.name ?? 'Anonymous' }}
+                                        </span>
+                                    </div>
+
+                                    <div class="flex items-center gap-1">
+                                        <span
+                                            v-for="(filled, i) in renderStars(review.rating)"
+                                            :key="i"
+                                            class="text-lg"
+                                            :class="filled ? 'text-yellow-400' : 'text-gray-500'"
+                                        >
+                                            ★
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <p class="whitespace-pre-line opacity-80">
+                                    {{ review.comment || '—' }}
+                                </p>
+                            </div>
+                            <Pagination
+                                v-if="reviews?.data?.length && (reviews.last_page ?? 1) > 1"
+                                :meta="reviews"
+                                :filters="{ requests_page: bookRequests?.current_page ?? 1 }"
+                                :route="route('books.show', book.id)"
+                            />
+                        </div>
                     </div>
                 </div>
 

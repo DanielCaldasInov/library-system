@@ -5,6 +5,7 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\RequestController;
+use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -35,6 +36,7 @@ Route::middleware([
     Route::resource('authors', AuthorController::class)->except(['index', 'show']);
     Route::resource('publishers', PublisherController::class)->except(['index', 'show']);
     Route::resource('users', UserController::class);
+    Route::resource('reviews', ReviewController::class);
 
     // Requests admin actions
     Route::patch('requests/{request}/confirm-received', [RequestController::class, 'confirmReceived'])
@@ -64,4 +66,7 @@ Route::middleware([
 
     Route::patch('requests/{request}/returned', [RequestController::class, 'markReturned'])
         ->name('requests.returned');
+
+    Route::post('/requests/{request}/review', [ReviewController::class, 'store'])
+        ->name('requests.review.store');
 });

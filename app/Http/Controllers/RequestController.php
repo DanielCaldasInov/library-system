@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Jobs\SendRequestCreatedEmails;
 use App\Models\Book;
 use App\Models\Request as BookRequest;
-use App\Services\RequestEmailService;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -17,7 +18,7 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        $status = $request->get('status', 'active');
+        $status = $request->get('status', 'all');
         $perPage = (int) ($request->get('per_page', 10));
         $filter = $request->get('filter', '');
 
@@ -49,12 +50,10 @@ class RequestController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        $allowedStatuses = $user->isAdmin()
-            ? ['all', 'active', 'awaiting_confirmation', 'completed', 'canceled']
-            : ['active', 'awaiting_confirmation', 'completed'];
+        $allowedStatuses =  ['all', 'active', 'awaiting_confirmation', 'completed', 'canceled'];
 
         if (! in_array($status, $allowedStatuses, true)) {
-            $status = $user->isAdmin() ? 'all' : 'active';
+            $status = 'all';
         }
 
         if ($status !== 'all') {
@@ -66,36 +65,36 @@ class RequestController extends Controller
 
             $query->where(function ($q) use ($search, $user, $filter) {
                 if ($filter === '' || $filter === null) {
-                    $q->where('number', 'like', "%{$search}%")
-                        ->orWhere('book_name', 'like', "%{$search}%")
-                        ->orWhereHas('book', fn ($b) => $b->where('name', 'like', "%{$search}%"));
+                    $q->where('number', 'like', "%$search%")
+                        ->orWhere('book_name', 'like', "%$search%")
+                        ->orWhereHas('book', fn ($b) => $b->where('name', 'like', "%$search%"));
 
                     if ($user->isAdmin()) {
-                        $q->orWhere('citizen_name', 'like', "%{$search}%")
-                            ->orWhere('citizen_email', 'like', "%{$search}%");
+                        $q->orWhere('citizen_name', 'like', "%$search%")
+                            ->orWhere('citizen_email', 'like', "%$search%");
                     }
 
                     return;
                 }
 
                 if ($filter === 'number') {
-                    $q->where('number', 'like', "%{$search}%");
+                    $q->where('number', 'like', "%$search%");
                     return;
                 }
 
                 if ($filter === 'book') {
-                    $q->where('book_name', 'like', "%{$search}%")
-                        ->orWhereHas('book', fn ($b) => $b->where('name', 'like', "%{$search}%"));
+                    $q->where('book_name', 'like', "%$search%")
+                        ->orWhereHas('book', fn ($b) => $b->where('name', 'like', "%$search%"));
                     return;
                 }
 
                 if ($filter === 'citizen' && $user->isAdmin()) {
-                    $q->where('citizen_name', 'like', "%{$search}%")
-                        ->orWhere('citizen_email', 'like', "%{$search}%");
+                    $q->where('citizen_name', 'like', "%$search%")
+                        ->orWhere('citizen_email', 'like', "%$search%");
                     return;
                 }
 
-                $q->where('number', 'like', "%{$search}%");
+                $q->where('number', 'like', "%$search%");
             });
         }
 
@@ -104,10 +103,10 @@ class RequestController extends Controller
         if ($sort === 'requested_at' || $sort === 'due_at') {
             $query->orderBy($sort, $direction);
         } elseif ($sort === 'book') {
-            $query->orderByRaw("COALESCE(book_name, '') {$direction}");
+            $query->orderByRaw("COALESCE(book_name, '') $direction");
         } elseif ($sort === 'citizen') {
             if ($user->isAdmin()) {
-                $query->orderByRaw("COALESCE(citizen_name, '') {$direction}");
+                $query->orderByRaw("COALESCE(citizen_name, '') $direction");
             } else {
                 $query->orderByDesc('requested_at');
             }
@@ -147,19 +146,13 @@ class RequestController extends Controller
             'direction' => $direction,
             'stats' => $stats,
             'searchOptions' => $searchOptions,
-            'statusOptions' => $user->isAdmin()
-                ? [
-                    ['value' => 'all', 'label' => 'All'],
-                    ['value' => 'active', 'label' => 'Active'],
-                    ['value' => 'awaiting_confirmation', 'label' => 'Awaiting confirmation'],
-                    ['value' => 'completed', 'label' => 'Completed'],
-                    ['value' => 'canceled', 'label' => 'Canceled'],
-                ]
-                : [
-                    ['value' => 'active', 'label' => 'Active'],
-                    ['value' => 'awaiting_confirmation', 'label' => 'Awaiting confirmation'],
-                    ['value' => 'completed', 'label' => 'Completed'],
-                ],
+            'statusOptions' => [
+                ['value' => 'all', 'label' => 'All'],
+                ['value' => 'active', 'label' => 'Active'],
+                ['value' => 'awaiting_confirmation', 'label' => 'Awaiting confirmation'],
+                ['value' => 'completed', 'label' => 'Completed'],
+                ['value' => 'canceled', 'label' => 'Canceled'],
+            ],
         ]);
     }
 
@@ -204,7 +197,6 @@ class RequestController extends Controller
             'book_id' => ['required', 'integer', 'exists:books,id'],
         ]);
 
-        // Check for number of active requests for user
         $activeCount = BookRequest::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [BookRequest::STATUS_ACTIVE, BookRequest::STATUS_AWAITING_CONFIRMATION])
@@ -262,7 +254,6 @@ class RequestController extends Controller
             ->with('success', 'Request created successfully.');
     }
 
-
     public function show(BookRequest $request)
     {
         $user = Auth::user();
@@ -276,10 +267,22 @@ class RequestController extends Controller
             'book.authors',
             'citizen',
             'receivedByAdmin',
+            'review',
         ]);
+
+        $isOwner = $user && $request->user_id === $user->id;
+
+        $canLeaveReview = $isOwner
+            && in_array($request->status, [
+                BookRequest::STATUS_AWAITING_CONFIRMATION,
+                BookRequest::STATUS_COMPLETED,
+            ], true)
+            && $request->review === null
+            && $request->book_id !== null;
 
         return Inertia::render('Requests/Show', [
             'request' => $request,
+            'canLeaveReview' => $canLeaveReview,
         ]);
     }
 
@@ -307,29 +310,53 @@ class RequestController extends Controller
         return back()->with('success', 'Marked as returned. Awaiting admin confirmation.');
     }
 
-    public function confirmReceived(BookRequest $request)
+    public function confirmReceived(Request $httpRequest, BookRequest $request)
     {
         $user = Auth::user();
 
-        if (! $user->isAdmin()) {
+        if (! $user || ! $user->isAdmin()) {
             abort(403);
         }
 
         if ($request->status !== BookRequest::STATUS_AWAITING_CONFIRMATION) {
-            return back()->with('error', 'This request is not awaiting confirmation.');
+            return back()->withErrors([
+                'request' => 'This request cannot be confirmed.',
+            ]);
         }
 
-        $receivedAt = now();
-        $daysElapsed = $receivedAt->diff($request->requested_at)->days;
+        $review = $request->review;
+
+        if ($review && $review->isPending()) {
+            $validated = $httpRequest->validate([
+                'review_action' => ['required', 'in:approve,reject'],
+                'rejection_reason' => ['required_if:review_action,reject', 'nullable', 'string', 'max:2000'],
+            ]);
+
+            if ($validated['review_action'] === 'approve') {
+                $review->update([
+                    'status' => Review::STATUS_ACTIVE,
+                    'rejection_reason' => null,
+                ]);
+            }
+
+            if ($validated['review_action'] === 'reject') {
+                $review->update([
+                    'status' => Review::STATUS_REJECTED,
+                    'rejection_reason' => $validated['rejection_reason'],
+                ]);
+            }
+        }
 
         $request->update([
             'status' => BookRequest::STATUS_COMPLETED,
-            'received_at' => $receivedAt,
-            'days_elapsed' => $daysElapsed,
+            'received_at' => now(),
             'received_by_admin_id' => $user->id,
+            'days_elapsed' => $request->requested_at
+                ? $request->requested_at->diffInDays(now())
+                : null,
         ]);
 
-        return back()->with('success', 'Return confirmed successfully.');
+        return back()->with('success', 'Request confirmed successfully.');
     }
 
     public function cancel(BookRequest $request)
@@ -344,9 +371,13 @@ class RequestController extends Controller
             return back()->with('error', 'Completed requests cannot be canceled.');
         }
 
-        $request->update([
-            'status' => BookRequest::STATUS_CANCELED,
-        ]);
+        DB::transaction(function () use ($request) {
+            $request->review()?->delete();
+
+            $request->update([
+                'status' => BookRequest::STATUS_CANCELED,
+            ]);
+        });
 
         return back()->with('success', 'Request canceled.');
     }

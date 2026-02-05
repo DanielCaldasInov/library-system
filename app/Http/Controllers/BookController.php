@@ -6,6 +6,7 @@ use App\Exports\BooksExport;
 use App\Models\Author;
 use App\Models\Book;
 use App\Models\Publisher;
+use App\Models\Review;
 use App\Services\GoogleBooks\GoogleBooksClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -153,7 +154,10 @@ class BookController extends Controller
      */
     public function show(Book $book)
     {
-        $book->load(['publisher', 'authors']);
+        $book->load([
+            'publisher',
+            'authors',
+        ]);
 
         $hasActiveRequest = BookRequest::query()
             ->where('book_id', $book->id)
@@ -170,7 +174,7 @@ class BookController extends Controller
         $bookRequestsCount = (clone $bookRequestsQuery)->count();
 
         $bookRequests = $bookRequestsQuery
-            ->paginate(10)
+            ->paginate(10, ['*'], 'requests_page')
             ->withQueryString()
             ->through(fn (BookRequest $r) => [
                 'id' => $r->id,
@@ -180,11 +184,20 @@ class BookController extends Controller
                 'returned_at' => $r->returned_at,
             ]);
 
+        $reviews = Review::query()
+            ->where('book_id', $book->id)
+            ->where('status', Review::STATUS_ACTIVE)
+            ->with('user:id,name,profile_photo_path')
+            ->orderByDesc('created_at')
+            ->paginate(10, ['*'], 'reviews_page')
+            ->withQueryString();
+
         return Inertia::render('Books/Show', [
             'book' => $book,
             'isAvailable' => ! $hasActiveRequest,
             'bookRequestsCount' => $bookRequestsCount,
             'bookRequests' => $bookRequests,
+            'reviews' => $reviews,
         ]);
     }
 
