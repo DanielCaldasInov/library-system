@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthorController;
+use App\Http\Controllers\BookAvailabilityAlertController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PublisherController;
@@ -69,4 +70,7 @@ Route::middleware([
 
     Route::post('/requests/{request}/review', [ReviewController::class, 'store'])
         ->name('requests.review.store');
+
+    Route::post('/books/{book}/availability-alert', [BookAvailabilityAlertController::class, 'store'])
+        ->name('books.availability-alert.store');
 });

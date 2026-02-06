@@ -12,6 +12,7 @@ const props = defineProps({
     bookRequestsCount: Number,
     reviews: Object,
     relatedBooks: Array,
+    isSubscribedAvailability: Boolean,
 })
 
 const page = usePage()
@@ -36,8 +37,12 @@ const confirmDelete = () => {
 
 const isLoggedIn = computed(() => !!page.props.auth?.user)
 const isAdmin = computed(() => !!page.props.auth?.user?.is_admin)
-
 const canRequest = computed(() => isLoggedIn.value && props.isAvailable)
+const notifyWhenAvailable = () => {
+    router.post(route("books.availability-alert.store", props.book.id), {}, {
+        preserveScroll: true,
+    })
+}
 
 const openRequestModal = () => {
     requestForm.clearErrors()
@@ -129,6 +134,21 @@ const totalRequests = computed(() => {
                         >
                             Back
                         </Link>
+
+                        <button
+                            v-if="isLoggedIn && !canRequest"
+                            type="button"
+                            class="btn py-2 px-2"
+                            :class="props.isSubscribedAvailability
+                                ? 'bg-gray-600 cursor-not-allowed'
+                                : 'bg-[#5754E8] hover:bg-[#3c39e3]'"
+                            :disabled="props.isSubscribedAvailability"
+                            @click="!props.isSubscribedAvailability && notifyWhenAvailable()"
+                        >
+                            {{ props.isSubscribedAvailability
+                            ? "We'll notify you"
+                            : "Notify me when available" }}
+                        </button>
 
                         <button
                             v-if="isLoggedIn"

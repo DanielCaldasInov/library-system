@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\BooksExport;
 use App\Models\Author;
 use App\Models\Book;
+use App\Models\BookAvailabilityAlert;
 use App\Models\Publisher;
 use App\Models\Review;
 use App\Services\Books\RelatedBooksService;
@@ -156,7 +157,7 @@ class BookController extends Controller
             ->with('success', 'Book created successfully.');
     }
 
-    public function show(Book $book, RelatedBooksService $relatedBooks)
+    public function show(Request $request, Book $book, RelatedBooksService $relatedBooks)
     {
         $book->load([
             'publisher',
@@ -196,6 +197,16 @@ class BookController extends Controller
             ->paginate(10, ['*'], 'reviews_page')
             ->withQueryString();
 
+        $isSubscribedAvailability = false;
+
+        $user = $request->user();
+        if ($user) {
+            $isSubscribedAvailability = BookAvailabilityAlert::query()
+                ->where('book_id', $book->id)
+                ->where('user_id', $user->id)
+                ->exists();
+        }
+
         return Inertia::render('Books/Show', [
             'book' => $book,
             'isAvailable' => ! $hasActiveRequest,
@@ -203,6 +214,7 @@ class BookController extends Controller
             'bookRequests' => $bookRequests,
             'reviews' => $reviews,
             'relatedBooks' => $relatedBooks->getRelated($book, 6),
+            'isSubscribedAvailability' => $isSubscribedAvailability,
         ]);
     }
 

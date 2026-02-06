@@ -6,6 +6,8 @@ use App\Jobs\SendRequestCreatedEmails;
 use App\Models\Book;
 use App\Models\Request as BookRequest;
 use App\Models\Review;
+use App\Services\Books\BookAvailabilityAlertService;
+use App\Services\Emails\ReviewEmailService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -310,8 +312,12 @@ class RequestController extends Controller
         return back()->with('success', 'Marked as returned. Awaiting admin confirmation.');
     }
 
-    public function confirmReceived(Request $httpRequest, BookRequest $request)
-    {
+    public function confirmReceived(
+        Request $httpRequest,
+        BookRequest $request,
+        BookAvailabilityAlertService $alerts,
+        ReviewEmailService $reviewEmails
+    ) {
         $user = Auth::user();
 
         if (! $user || ! $user->isAdmin()) {
@@ -345,6 +351,8 @@ class RequestController extends Controller
                     'rejection_reason' => $validated['rejection_reason'],
                 ]);
             }
+
+            $reviewEmails->sendReviewEvaluated($review);
         }
 
         $request->update([
@@ -355,6 +363,10 @@ class RequestController extends Controller
                 ? $request->requested_at->diffInDays(now())
                 : null,
         ]);
+
+        if ($request->book_id) {
+            $alerts->notifyIfAvailable($request->book_id);
+        }
 
         return back()->with('success', 'Request confirmed successfully.');
     }

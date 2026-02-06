@@ -5,15 +5,15 @@ namespace App\Notifications;
 use App\Models\Review;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\MailMessage;
+use Illuminate\Notifications\Notification;
 
 class ReviewEvaluatedNotification extends Notification implements ShouldQueue
 {
     use Queueable;
 
     public function __construct(
-        private Review $review
+        public int $reviewId
     ) {}
 
     public function via($notifiable): array
@@ -23,19 +23,33 @@ class ReviewEvaluatedNotification extends Notification implements ShouldQueue
 
     public function toMail($notifiable): MailMessage
     {
-        $book = $this->review->book;
+        $review = Review::query()
+            ->with([
+                'book:id,name,cover',
+            ])
+            ->find($this->reviewId);
+
+        // Se por algum motivo a review foi apagada, não quebra o job
+        if (! $review) {
+            return (new MailMessage)
+                ->subject('Your review has been evaluated')
+                ->line('Your review was evaluated, but the record is no longer available.')
+                ->line('Thanks.');
+        }
+
+        $book = $review->book;
 
         return (new MailMessage)
             ->subject('Your review has been evaluated')
             ->view('emails.reviews.evaluated_html', [
                 'citizenName' => $notifiable->name,
-                'rating' => $this->review->rating,
-                'comment' => $this->review->comment,
-                'status' => $this->review->status,
-                'rejectionReason' => $this->review->rejection_reason,
-                'bookName' => $book?->name,
+                'rating' => $review->rating,
+                'comment' => $review->comment,
+                'status' => $review->status,
+                'rejectionReason' => $review->rejection_reason,
+                'bookName' => $book?->name ?? '—',
                 'bookCover' => $book?->cover,
-                'bookUrl' => route('books.show', $book),
+                'bookUrl' => $book ? route('books.show', $book->id) : url('/books'),
             ]);
     }
 }

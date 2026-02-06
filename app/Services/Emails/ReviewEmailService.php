@@ -19,20 +19,20 @@ class ReviewEmailService
         foreach ($admins as $admin) {
             $admin->notify(
                 (new ReviewCreatedNotification($review))
-                    ->delay(now()->addSeconds(12))
             );
         }
     }
 
     public function sendReviewEvaluated(Review $review): void
     {
+        $review->loadMissing(['user:id,email']);
+
         if (! $review->user?->email) {
             return;
         }
 
         $review->user->notify(
-            (new ReviewEvaluatedNotification($review))
-                ->delay(now()->addSeconds(12))
+            new ReviewEvaluatedNotification($review->id)
         );
     }
 }
