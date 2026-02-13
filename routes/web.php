@@ -3,7 +3,10 @@
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\BookAvailabilityAlertController;
 use App\Http\Controllers\BookController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ReviewController;
@@ -25,10 +28,10 @@ Route::middleware([
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    //Exports
+    // Exports
     Route::get('/books/export', [BookController::class, 'export'])->name('books.export');
 
-    //Imports
+    // Imports
     Route::get('/books/import', [BookController::class, 'importIndex'])->name('books.import.index');
     Route::post('/books/import', [BookController::class, 'importStore'])->name('books.import.store');
 
@@ -62,8 +65,9 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::resource('requests', RequestController::class)
-        ->only(['index', 'create', 'store', 'show']);
+
+    // Requests
+    Route::resource('requests', RequestController::class)->only(['index', 'create', 'store', 'show']);
 
     Route::patch('requests/{request}/returned', [RequestController::class, 'markReturned'])
         ->name('requests.returned');
@@ -71,6 +75,28 @@ Route::middleware([
     Route::post('/requests/{request}/review', [ReviewController::class, 'store'])
         ->name('requests.review.store');
 
+    // Availability alerts
     Route::post('/books/{book}/availability-alert', [BookAvailabilityAlertController::class, 'store'])
         ->name('books.availability-alert.store');
+
+    // Cart
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+
+    Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
+    Route::patch('/cart/items/{cartItem}', [CartController::class, 'update'])->name('cart.items.update');
+    Route::delete('/cart/items/{cartItem}', [CartController::class, 'destroy'])->name('cart.items.destroy');
+
+    // Checkout
+    Route::get('/checkout/delivery', [CheckoutController::class, 'delivery'])->name('checkout.delivery');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+
+    Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/checkout/cancel/{order}', [CheckoutController::class, 'cancel'])->name('checkout.cancel');
+
+    //Orders
+    Route::get('/orders', [OrderController::class, 'index'])
+        ->name('orders.index');
+
+    Route::get('/orders/{order}', [OrderController::class, 'show'])
+        ->name('orders.show');
 });

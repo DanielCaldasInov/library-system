@@ -40,6 +40,7 @@ const resolveProfilePhotoUrl = (user) => {
                 <Link href="/authors" class="btn btn-ghost">Authors</Link>
                 <Link href="/publishers" class="btn btn-ghost">Publishers</Link>
                 <Link v-if="$page.props.auth?.user" href="/requests" class="btn btn-ghost">Requests</Link>
+                <Link v-if="$page.props.auth?.user" href="/orders" class="btn btn-ghost">Orders</Link>
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/reviews" class="btn btn-ghost">Reviews</Link>
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/users" class="btn btn-ghost">Users</Link>
             </div>
@@ -82,6 +83,24 @@ const resolveProfilePhotoUrl = (user) => {
                     >
                         Logout
                     </button>
+
+                    <Link
+                        href="/cart"
+                        class="btn btn-ghost px-3"
+                        title="Cart"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            class="w-5 h-5"
+                            aria-hidden="true"
+                        >
+                            <path d="M2.25 3.75A.75.75 0 0 1 3 3h1.386a.75.75 0 0 1 .728.569L5.5 5.25H21a.75.75 0 0 1 .73.914l-1.5 7.5A.75.75 0 0 1 19.5 14.25H7.2a.75.75 0 0 1-.728-.57L4.28 4.5H3a.75.75 0 0 1-.75-.75Zm5.56 9h11.08l1.2-6H6.61l1.2 6Z"/>
+                            <path d="M7.5 21a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3ZM18 21a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3Z"/>
+                        </svg>
+                    </Link>
+
                     <div
                         v-if="resolveProfilePhotoUrl($page.props.auth.user)"
                         class="ml-2 w-10 h-10 rounded-full overflow-hidden bg-base-300 flex items-center justify-center"

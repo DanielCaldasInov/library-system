@@ -183,18 +183,31 @@ const totalRequests = computed(() => {
                 </div>
 
                 <div class="flex justify-center mb-6">
-                    <div class="w-56 h-56 rounded-lg bg-gray-900/80 overflow-hidden flex items-center justify-center">
-                        <img
-                            v-if="book.cover"
-                            :src="imgSrc(book.cover)"
-                            :alt="`${book.name} cover`"
-                            class="w-full h-full object-cover"
-                        />
-                        <span v-else class="text-xs opacity-60">
-                            No cover
-                        </span>
+                    <div class="flex items-start gap-4">
+                        <div class="w-56 h-56 rounded-lg bg-gray-900/80 overflow-hidden flex items-center justify-center">
+                            <img
+                                v-if="book.cover"
+                                :src="imgSrc(book.cover)"
+                                :alt="`${book.name} cover`"
+                                class="w-full h-full object-cover"
+                            />
+                            <span v-else class="text-xs opacity-60">
+                                No cover
+                            </span>
+                        </div>
+
+                        <div v-if="isLoggedIn" class="pt-40 ml-10">
+                            <button
+                                type="button"
+                                class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2 text-white"
+                                @click="router.post(route('cart.items.store'), { book_id: book.id }, { preserveScroll: true })"
+                            >
+                                Add to cart
+                            </button>
+                        </div>
                     </div>
                 </div>
+
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
