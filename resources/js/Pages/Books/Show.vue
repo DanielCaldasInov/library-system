@@ -196,7 +196,7 @@ const totalRequests = computed(() => {
                             </span>
                         </div>
 
-                        <div v-if="isLoggedIn" class="pt-40 ml-10">
+                        <div v-if="canRequest" class="pt-40 ml-10">
                             <button
                                 type="button"
                                 class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2 text-white"

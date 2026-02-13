@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Cart;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Middleware;
@@ -51,10 +52,19 @@ class HandleInertiaRequests extends Middleware
                     'profile_photo_path' => $user->profile_photo_path,
                 ] : null,
             ],
+
             'routes' => [
                 'canLogin' => Route::has('login'),
                 'canRegister' => Route::has('register'),
             ],
+
+            'cartCount' => fn () => $user
+                ? (int) (Cart::query()
+                    ->where('user_id', $user->id)
+                    ->where('status', 'active')
+                    ->withCount('items')
+                    ->first()?->items_count ?? 0)
+                : 0,
         ]);
     }
 }

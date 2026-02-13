@@ -79,7 +79,7 @@ const formatMoney = (cents, currency = "EUR") => {
 
                     <div class="flex items-center gap-2">
                         <button
-                            class="btn btn-sm"
+                            class="btn btn-sm py-2 px-2 bg-gray-700 hover:bg-[#3c39e3]"
                             @click="updateQty(item, item.qty - 1)"
                         >
                             −
@@ -90,7 +90,7 @@ const formatMoney = (cents, currency = "EUR") => {
                         </span>
 
                         <button
-                            class="btn btn-sm"
+                            class="btn btn-sm py-2 px-2 bg-gray-700 hover:bg-[#3c39e3]"
                             @click="updateQty(item, item.qty + 1)"
                         >
                             +
@@ -103,7 +103,7 @@ const formatMoney = (cents, currency = "EUR") => {
 
                     <!-- Remove -->
                     <button
-                        class="btn btn-sm bg-red-600 hover:bg-red-700"
+                        class="btn btn-sm bg-red-600 hover:bg-red-700 py-2 px-2"
                         @click="removeItem(item)"
                     >
                         ✕
