@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('requests:send-due-tomorrow-reminders')
     ->dailyAt('09:00');
+
+Schedule::command('carts:send-help-emails')->everyFiveMinutes();
