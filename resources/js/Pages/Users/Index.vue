@@ -79,17 +79,17 @@ const arrow = (field) => {
                 >
                     <template #head>
                         <tr>
-                            <th class="cursor-pointer" @click="sortBy('name')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('name')">
                                 Name {{ arrow('name') }}
                             </th>
 
-                            <th class="cursor-pointer" @click="sortBy('email')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('email')">
                                 Email {{ arrow('email') }}
                             </th>
 
                             <th>Role</th>
 
-                            <th class="text-right cursor-pointer" @click="sortBy('created_at')">
+                            <th class="text-right cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('created_at')">
                                 Registered {{ arrow('created_at') }}
                             </th>
 

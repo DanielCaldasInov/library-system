@@ -151,7 +151,6 @@ const submit = () => {
                     </form>
                 </div>
 
-                <!-- SUMMARY -->
                 <div class="bg-gray-800 rounded-lg p-6">
                     <h2 class="text-xl font-semibold mb-4">Order summary</h2>
 

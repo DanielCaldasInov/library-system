@@ -78,12 +78,12 @@ const deleteMessage = (publisherName) => {
                         <tr>
                             <th>Logo</th>
 
-                            <th @click="sortBy('name')" class="cursor-pointer">
+                            <th @click="sortBy('name')" class="cursor-pointer hover:bg-gray-700 transition-colors">
                                 Name
                                 {{ sort === 'name' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 
-                            <th @click="sortBy('books')" class="cursor-pointer">
+                            <th @click="sortBy('books')" class="cursor-pointer hover:bg-gray-700 transition-colors">
                                 Books
                                 {{ sort === 'books' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>

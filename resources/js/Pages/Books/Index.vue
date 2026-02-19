@@ -157,21 +157,21 @@ const onAvailabilityChange = (e) => {
                         <tr>
                             <th>Cover</th>
 
-                            <th @click="sortBy('name')" class="cursor-pointer">
+                            <th @click="sortBy('name')" class="cursor-pointer hover:bg-gray-700 transition-colors">
                                 Name {{ sort === 'name' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 
                             <th>Availability</th>
 
-                            <th @click="sortBy('publisher')" class="cursor-pointer">
+                            <th @click="sortBy('publisher')" class="cursor-pointer hover:bg-gray-700 transition-colors">
                                 Publisher {{ sort === 'publisher' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 
-                            <th @click="sortBy('author')" class="cursor-pointer">
+                            <th @click="sortBy('author')" class="cursor-pointer hover:bg-gray-700 transition-colors">
                                 Authors {{ sort === 'author' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 
-                            <th @click="sortBy('price')" class="cursor-pointer text-right">
+                            <th @click="sortBy('price')" class="cursor-pointer text-right hover:bg-gray-700 transition-colors">
                                 Price {{ sort === 'price' ? (direction === 'asc' ? '▲' : '▼') : '' }}
                             </th>
 

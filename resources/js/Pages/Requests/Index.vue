@@ -153,13 +153,13 @@ const arrow = (field) => {
                         <tr>
                             <th>#</th>
 
-                            <th class="cursor-pointer" @click="sortBy('book')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('book')">
                                 Book {{ arrow('book') }}
                             </th>
 
                             <th
                                 v-if="$page.props.auth?.user?.is_admin"
-                                class="cursor-pointer"
+                                class="cursor-pointer hover:bg-gray-700 transition-colors"
                                 @click="sortBy('citizen')"
                             >
                                 Citizen {{ arrow('citizen') }}
@@ -167,11 +167,11 @@ const arrow = (field) => {
 
                             <th>Status</th>
 
-                            <th class="cursor-pointer" @click="sortBy('requested_at')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('requested_at')">
                                 Requested {{ arrow('requested_at') }}
                             </th>
 
-                            <th class="cursor-pointer" @click="sortBy('due_at')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('due_at')">
                                 Due {{ arrow('due_at') }}
                             </th>
 

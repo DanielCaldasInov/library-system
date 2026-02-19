@@ -10,6 +10,7 @@ use App\Http\Controllers\OrderController;
 use App\Http\Controllers\PublisherController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\SystemLogController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -45,9 +46,11 @@ Route::middleware([
     // Requests admin actions
     Route::patch('requests/{request}/confirm-received', [RequestController::class, 'confirmReceived'])
         ->name('requests.confirmReceived');
-
     Route::patch('requests/{request}/cancel', [RequestController::class, 'cancel'])
         ->name('requests.cancel');
+
+    // Logs
+    Route::get('/system-logs', [SystemLogController::class, 'index'])->name('system-logs.index');
 });
 
 /**

@@ -66,6 +66,7 @@ const logout = () => {
                 <Link v-if="$page.props.auth?.user" href="/orders" class="btn btn-ghost">Orders</Link>
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/reviews" class="btn btn-ghost">Reviews</Link>
                 <Link v-if="$page.props.auth?.user?.is_admin" href="/users" class="btn btn-ghost">Users</Link>
+                <Link v-if="$page.props.auth.user?.is_admin"  :href="route('system-logs.index')" class="btn btn-ghost">Logs</Link>
             </div>
 
             <div class="flex flex-row gap-2 items-center">

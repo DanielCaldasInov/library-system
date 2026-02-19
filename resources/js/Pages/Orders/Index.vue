@@ -73,7 +73,6 @@ const arrow = (field) => {
             </div>
 
             <div class="w-full max-w-6xl mx-auto space-y-4">
-                <!-- Search + Status filter -->
                 <SearchForm
                     action="/orders"
                     :filters="{ ...filters, sort, direction }"
@@ -101,7 +100,7 @@ const arrow = (field) => {
                 >
                     <template #head>
                         <tr>
-                            <th class="cursor-pointer" @click="sortBy('id')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('id')">
                                 ID {{ arrow('id') }}
                             </th>
 
@@ -111,11 +110,11 @@ const arrow = (field) => {
 
                             <th>Status</th>
 
-                            <th class="cursor-pointer text-right" @click="sortBy('total_amount')">
+                            <th class="cursor-pointer text-right hover:bg-gray-700 transition-colors" @click="sortBy('total_amount')">
                                 Total {{ arrow('total_amount') }}
                             </th>
 
-                            <th class="cursor-pointer" @click="sortBy('created_at')">
+                            <th class="cursor-pointer hover:bg-gray-700 transition-colors" @click="sortBy('created_at')">
                                 Created {{ arrow('created_at') }}
                             </th>
 

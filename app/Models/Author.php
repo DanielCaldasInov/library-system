@@ -2,15 +2,16 @@
 
 namespace App\Models;
 
+use App\Traits\LogsActivity;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Author extends Model
 {
     /** @use HasFactory<\Database\Factories\AuthorFactory> */
     use HasFactory;
+    use LogsActivity;
 
     protected $casts = [
         //'name' => 'encrypted',
