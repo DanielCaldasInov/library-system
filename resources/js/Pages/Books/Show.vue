@@ -8,6 +8,7 @@ import { ref, computed } from "vue"
 const props = defineProps({
     book: Object,
     isAvailable: Boolean,
+    availableStock: Number, // <-- Nova prop
     bookRequests: Object,
     bookRequestsCount: Number,
     reviews: Object,
@@ -37,7 +38,10 @@ const confirmDelete = () => {
 
 const isLoggedIn = computed(() => !!page.props.auth?.user)
 const isAdmin = computed(() => !!page.props.auth?.user?.is_admin)
+
+// Agora verificamos com a isAvailable baseada no Stock real
 const canRequest = computed(() => isLoggedIn.value && props.isAvailable)
+
 const notifyWhenAvailable = () => {
     router.post(route("books.availability-alert.store", props.book.id), {}, {
         preserveScroll: true,
@@ -78,7 +82,6 @@ const renderStars = (rating) => {
     }
     return stars
 }
-
 
 const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : "—")
 
@@ -136,7 +139,7 @@ const totalRequests = computed(() => {
                         </Link>
 
                         <button
-                            v-if="isLoggedIn && !canRequest"
+                            v-if="isLoggedIn && !props.isAvailable"
                             type="button"
                             class="btn py-2 px-2"
                             :class="props.isSubscribedAvailability
@@ -153,14 +156,14 @@ const totalRequests = computed(() => {
                         <button
                             v-if="isLoggedIn"
                             type="button"
-                            class="btn py-2 px-2"
+                            class="btn py-2 px-2 transition-colors"
                             :class="props.isAvailable
-                                ? 'bg-[#5754E8] hover:bg-[#3c39e3]'
-                                : 'bg-gray-600 cursor-not-allowed'"
+                                ? 'bg-[#5754E8] hover:bg-[#3c39e3] text-white'
+                                : 'bg-gray-600 cursor-not-allowed opacity-70 text-gray-300'"
                             :disabled="!props.isAvailable"
                             @click="props.isAvailable && openRequestModal()"
                         >
-                            {{ props.isAvailable ? 'Request this book' : 'Book unavailable' }}
+                            {{ props.isAvailable ? 'Request this book' : 'Out of stock' }}
                         </button>
 
                         <button
@@ -196,18 +199,21 @@ const totalRequests = computed(() => {
                             </span>
                         </div>
 
-                        <div v-if="canRequest" class="pt-40 ml-10">
+                        <div v-if="isLoggedIn" class="pt-40 ml-10">
                             <button
                                 type="button"
-                                class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2 text-white"
-                                @click="router.post(route('cart.items.store'), { book_id: book.id }, { preserveScroll: true })"
+                                class="btn py-2 px-2 transition-colors"
+                                :class="props.isAvailable
+                                    ? 'bg-[#5754E8] hover:bg-[#3c39e3] text-white'
+                                    : 'bg-gray-600 cursor-not-allowed opacity-70 text-gray-300'"
+                                :disabled="!props.isAvailable"
+                                @click="props.isAvailable && router.post(route('cart.items.store'), { book_id: book.id }, { preserveScroll: true })"
                             >
                                 Add to cart
                             </button>
                         </div>
                     </div>
                 </div>
-
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
@@ -225,12 +231,24 @@ const totalRequests = computed(() => {
                     </div>
                 </div>
 
-                <div class="mb-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
                         <span class="text-sm opacity-60">Price</span>
                         <span class="text-white">
                             ${{ Number(book.price ?? 0).toFixed(2) }}
                         </span>
+                    </div>
+
+                    <div class="flex flex-col rounded-md bg-gray-900/80 px-3 py-3">
+                        <span class="text-sm opacity-60 mb-1">Availability</span>
+                        <div>
+                            <span v-if="props.availableStock > 0" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-900/50 text-green-400 border border-green-700">
+                                In Stock ({{ props.availableStock }} available)
+                            </span>
+                            <span v-else class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-900/50 text-red-400 border border-red-700">
+                                Out of Stock
+                            </span>
+                        </div>
                     </div>
                 </div>
 
@@ -393,7 +411,7 @@ const totalRequests = computed(() => {
                                         <img
                                             :src="review.user?.profile_photo_url"
                                             class="w-8 h-8 rounded-full object-cover bg-gray-700"
-                                         alt="Profile Photo"/>
+                                            alt="Profile Photo"/>
                                         <span class="font-semibold text-white">
                                             {{ review.user?.name ?? 'Anonymous' }}
                                         </span>

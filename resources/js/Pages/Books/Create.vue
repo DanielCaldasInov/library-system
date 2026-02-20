@@ -19,6 +19,7 @@ const form = useForm({
     publisher_id: '',
     authors: [],
     cover: null,
+    stock: ''
 })
 
 const filteredAuthors = computed(() => {
@@ -129,6 +130,27 @@ const submit = () => {
 
                         <p v-if="form.errors.price" class="text-red-400 text-sm mt-1">
                             {{ form.errors.price }}
+                        </p>
+                    </div>
+
+                    <div class="flex flex-col rounded-md bg-gray-900/80 px-2 py-2">
+                        <label class="label mb-2">
+                            <span class="label-text text-white font-bold text-base">
+                                Stock
+                            </span>
+                        </label>
+
+                        <input
+                            v-model="form.stock"
+                            type="number"
+                            min="0"
+                            class="input input-bordered w-full text-black rounded-lg"
+                            placeholder="0"
+                            required
+                        />
+
+                        <p v-if="form.errors.stock" class="text-red-400 text-sm mt-1">
+                            {{ form.errors.stock }}
                         </p>
                     </div>
 

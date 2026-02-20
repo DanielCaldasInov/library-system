@@ -33,7 +33,6 @@ const submit = () => {
 
             <div class="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg p-6 space-y-6">
 
-                <!-- Header -->
                 <div class="flex items-center justify-between">
                     <h1 class="text-2xl font-bold">New Request</h1>
 
@@ -42,7 +41,6 @@ const submit = () => {
                     </Link>
                 </div>
 
-                <!-- Limit info -->
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-gray-900/70 rounded-lg px-4 py-3">
                     <div class="text-sm opacity-80">
                         Active requests:
@@ -59,10 +57,8 @@ const submit = () => {
                     </div>
                 </div>
 
-                <!-- Form -->
                 <form @submit.prevent="submit" class="space-y-5">
 
-                    <!-- Book select -->
                     <div class="bg-gray-900/80 rounded px-3 py-3">
                         <label class="label">
                             <span class="label-text text-white font-semibold">
@@ -84,7 +80,7 @@ const submit = () => {
                                 :key="book.id"
                                 :value="book.id"
                             >
-                                {{ book.name }} — {{ book.publisher?.name ?? 'Unknown publisher' }}
+                                {{ book.name }} ({{ book.available_stock }} available)
                             </option>
                         </select>
 
@@ -97,7 +93,6 @@ const submit = () => {
                         </p>
                     </div>
 
-                    <!-- Preview selected book -->
                     <div
                         v-if="selectedBook"
                         class="bg-gray-900/80 rounded-lg p-4 flex flex-col sm:flex-row gap-4"
@@ -109,8 +104,11 @@ const submit = () => {
                         />
 
                         <div class="flex-1">
-                            <h2 class="text-lg font-semibold">
+                            <h2 class="text-lg font-semibold flex items-center gap-3">
                                 {{ selectedBook.name }}
+                                <span class="badge badge-success badge-sm border-none bg-green-900/50 text-green-400 font-medium">
+                                    {{ selectedBook.available_stock }} in stock
+                                </span>
                             </h2>
 
                             <p class="text-sm opacity-70 mt-1">
@@ -130,11 +128,10 @@ const submit = () => {
                         </div>
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex justify-end gap-3 pt-2">
                         <button
                             type="button"
-                            class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2"
+                            class="btn bg-gray-700 hover:bg-black py-2 px-2"
                             @click="form.reset()"
                             :disabled="form.processing"
                         >
@@ -143,7 +140,7 @@ const submit = () => {
 
                         <button
                             type="submit"
-                            class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2"
+                            class="btn bg-[#5754E8] hover:bg-[#3c39e3] py-2 px-2 text-white"
                             :disabled="form.processing || limitReached || !availableBooks?.length"
                         >
                             {{ form.processing ? "Submitting..." : "Submit Request" }}

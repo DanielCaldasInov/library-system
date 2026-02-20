@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Stripe\Webhook;
 use Symfony\Component\HttpFoundation\Response;
@@ -79,10 +80,20 @@ class StripeWebhookController extends Controller
 
         $paymentIntentId = $session->payment_intent ?? null;
 
-        $order->update([
-            'status' => 'paid',
-            'stripe_payment_intent_id' => $paymentIntentId,
-        ]);
+        DB::transaction(function () use ($order, $paymentIntentId) {
+            $order->update([
+                'status' => 'paid',
+                'stripe_payment_intent_id' => $paymentIntentId,
+            ]);
+
+            $order->load('items.book');
+
+            foreach ($order->items as $item) {
+                if ($item->book && $item->qty > 0) {
+                    $item->book->decrement('stock', $item->qty);
+                }
+            }
+        });
 
         //TODO: Implementar email com os detalhes do pagamento
     }

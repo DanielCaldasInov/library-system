@@ -70,6 +70,7 @@ class BookSeeder extends Seeder
                     'bibliography' => $bibliography,
                     'cover' => $cover,
                     'price' => round($price, 2),
+                    'stock' => fake()->numberBetween(5, 50),
                 ]);
 
                 $authorNames = $data['authors'] ?? [];

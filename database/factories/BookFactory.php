@@ -24,7 +24,8 @@ class BookFactory extends Factory
             'publisher_id' => Publisher::factory(),
             'bibliography' => fake()->text(),
             'cover' => 'http://picsum.photos/seed/'.rand(0,999) .'/100',
-            'price' => fake()->numberBetween(10,350)
+            'price' => fake()->numberBetween(10,350),
+            'stock' => fake()->numberBetween(0, 50),
         ];
     }
 

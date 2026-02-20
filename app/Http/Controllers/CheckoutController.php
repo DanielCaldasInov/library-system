@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Request as BookRequest;
 use App\Services\Payments\StripeClient;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,13 +21,34 @@ class CheckoutController extends Controller
         $cart = Cart::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->with(['items.book:id,name,cover,price'])
+            ->with(['items.book' => function ($q) {
+                $q->select(['id', 'name', 'cover', 'price', 'stock'])
+                    ->withCount(['requests as active_requests_count' => function ($q2) {
+                        $q2->whereIn('status', [
+                            BookRequest::STATUS_ACTIVE,
+                            BookRequest::STATUS_AWAITING_CONFIRMATION,
+                        ]);
+                    }]);
+            }])
             ->first();
 
         if (! $cart || $cart->items->isEmpty()) {
             return redirect()
                 ->route('cart.index')
                 ->with('error', 'Your cart is empty.');
+        }
+
+        foreach ($cart->items as $item) {
+            $book = $item->book;
+            if (! $book) continue;
+
+            $availableStock = max(0, $book->stock - $book->active_requests_count);
+
+            if ($item->qty > $availableStock) {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', "The stock for '{$book->name}' has changed. Please adjust the quantity in your cart.");
+            }
         }
 
         $total = $cart->items->sum(function ($item) {
@@ -70,7 +92,15 @@ class CheckoutController extends Controller
         $cart = Cart::query()
             ->where('user_id', $user->id)
             ->where('status', 'active')
-            ->with(['items.book:id,name,price'])
+            ->with(['items.book' => function ($q) {
+                $q->select(['id', 'name', 'price', 'stock'])
+                    ->withCount(['requests as active_requests_count' => function ($q2) {
+                        $q2->whereIn('status', [
+                            BookRequest::STATUS_ACTIVE,
+                            BookRequest::STATUS_AWAITING_CONFIRMATION,
+                        ]);
+                    }]);
+            }])
             ->first();
 
         if (! $cart || $cart->items->isEmpty()) {
@@ -86,6 +116,13 @@ class CheckoutController extends Controller
             $book = $item->book;
             if (! $book) {
                 continue;
+            }
+
+            $availableStock = max(0, $book->stock - $book->active_requests_count);
+            if ($item->qty > $availableStock) {
+                return redirect()
+                    ->route('cart.index')
+                    ->with('error', "We're sorry, but the stock for '{$book->name}' was just reserved by someone else. Please adjust your cart.");
             }
 
             $unitAmount = (int) round(((float) $book->price) * 100);

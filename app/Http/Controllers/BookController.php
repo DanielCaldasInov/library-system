@@ -128,6 +128,7 @@ class BookController extends Controller
             'publisher_id' => ['required', 'integer', 'exists:publishers,id'],
             'authors' => ['required', 'array', 'min:1'],
             'authors.*' => ['integer', 'exists:authors,id'],
+            'stock' => ['required', 'integer', 'min:0']
         ]);
 
         $isbn = preg_replace('/\D+/', '', $validated['isbn']);
@@ -146,6 +147,7 @@ class BookController extends Controller
             'bibliography' => $validated['bibliography'],
             'cover' => $coverUrl,
             'publisher_id' => $validated['publisher_id'],
+            'stock' => $validated['stock'],
         ]);
 
         $book->authors()->sync($validated['authors']);
@@ -164,13 +166,17 @@ class BookController extends Controller
             'authors',
         ]);
 
-        $hasActiveRequest = BookRequest::query()
+        $activeRequestsCount = BookRequest::query()
             ->where('book_id', $book->id)
             ->whereIn('status', [
                 BookRequest::STATUS_ACTIVE,
                 BookRequest::STATUS_AWAITING_CONFIRMATION,
             ])
-            ->exists();
+            ->count();
+
+        $availableStock = max(0, $book->stock - $activeRequestsCount);
+
+        $isAvailable = $availableStock > 0;
 
         $bookRequestsQuery = BookRequest::query()
             ->where('book_id', $book->id)
@@ -209,7 +215,8 @@ class BookController extends Controller
 
         return Inertia::render('Books/Show', [
             'book' => $book,
-            'isAvailable' => ! $hasActiveRequest,
+            'isAvailable' => $isAvailable,
+            'availableStock' => $availableStock,
             'bookRequestsCount' => $bookRequestsCount,
             'bookRequests' => $bookRequests,
             'reviews' => $reviews,
@@ -244,6 +251,7 @@ class BookController extends Controller
             'publisher_id' => ['required', 'integer', 'exists:publishers,id'],
             'authors' => ['required', 'array', 'min:1'],
             'authors.*' => ['integer', 'exists:authors,id'],
+            'stock' => ['required', 'integer', 'min:0']
         ]);
 
         $coverUrl = $book->cover;
@@ -267,6 +275,7 @@ class BookController extends Controller
             'bibliography' => $validated['bibliography'] ?? null,
             'cover' => $coverUrl,
             'publisher_id' => $validated['publisher_id'],
+            'stock' => $validated['stock'],
         ]);
 
         $book->authors()->sync($validated['authors']);

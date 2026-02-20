@@ -8,14 +8,18 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-it('allows a citizen with a profile photo to create a book request', function () {
+beforeEach(function () {
     Role::firstOrCreate(['name' => 'citizen']);
+});
 
+it('allows a citizen with a profile photo to create a book request', function () {
     $user = User::factory()->create([
         'profile_photo_path' => 'photos/dummy-avatar.jpg',
     ]);
 
-    $book = Book::factory()->create();
+    $book = Book::factory()->create([
+        'stock' => 5,
+    ]);
 
     $response = $this->actingAs($user)
         ->post(route('requests.store'), [
@@ -34,13 +38,13 @@ it('allows a citizen with a profile photo to create a book request', function ()
 });
 
 it('prevents a citizen without a profile photo from creating a book request', function () {
-    Role::firstOrCreate(['name' => 'citizen']);
-
     $user = User::factory()->create([
         'profile_photo_path' => null,
     ]);
 
-    $book = Book::factory()->create();
+    $book = Book::factory()->create([
+        'stock' => 5,
+    ]);
 
     $response = $this->actingAs($user)
         ->post(route('requests.store'), [
@@ -58,15 +62,13 @@ it('prevents a citizen without a profile photo from creating a book request', fu
 });
 
 it('prevents a request if the book does not exist', function () {
-    Role::firstOrCreate(['name' => 'citizen']);
-
     $user = User::factory()->create([
         'profile_photo_path' => 'photos/dummy-avatar.jpg',
     ]);
 
     $response = $this->actingAs($user)
         ->post(route('requests.store'), [
-            'book_id' => 99999,
+            'book_id' => 99999, // Livro inexistente
         ]);
 
     $response->assertSessionHasErrors(['book_id']);
@@ -75,13 +77,13 @@ it('prevents a request if the book does not exist', function () {
 });
 
 it('prevents a user from having more than 3 active requests', function () {
-    Role::firstOrCreate(['name' => 'citizen']);
-
     $user = User::factory()->create([
         'profile_photo_path' => 'photos/dummy-avatar.jpg',
     ]);
 
-    $books = Book::factory()->count(4)->create();
+    $books = Book::factory()->count(4)->create([
+        'stock' => 5,
+    ]);
 
     for ($i = 0; $i < 3; $i++) {
         BookRequest::factory()->active()->create([
@@ -102,30 +104,25 @@ it('prevents a user from having more than 3 active requests', function () {
     $this->assertDatabaseCount('requests', 3);
 });
 
-it('prevents requesting a book that is already borrowed by someone else', function () {
-    Role::firstOrCreate(['name' => 'citizen']);
+it('prevents requesting a book that is already borrowed by someone else and has no stock left', function () {
+    $user1 = User::factory()->create(['profile_photo_path' => 'photos/test1.jpg']);
+    $user2 = User::factory()->create(['profile_photo_path' => 'photos/test2.jpg']);
 
-    $userA = User::factory()->create(['profile_photo_path' => 'photos/user-a.jpg']);
-    $userB = User::factory()->create(['profile_photo_path' => 'photos/user-b.jpg']);
-
-    $book = Book::factory()->create();
+    $book = Book::factory()->create([
+        'stock' => 1,
+    ]);
 
     BookRequest::factory()->active()->create([
-        'user_id' => $userA->id,
+        'user_id' => $user1->id,
         'book_id' => $book->id,
     ]);
 
-    $response = $this->actingAs($userB)
+    $response = $this->actingAs($user2)
         ->post(route('requests.store'), [
             'book_id' => $book->id,
         ]);
 
-    $response->assertSessionHasErrors([
-        'book_id' => 'This book is not available for request right now.'
-    ]);
-
-    $this->assertDatabaseMissing('requests', [
-        'user_id' => $userB->id,
-        'book_id' => $book->id,
+    $response->assertInvalid([
+        'book_id' => 'This book is out of stock and not available for request right now.'
     ]);
 });

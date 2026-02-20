@@ -162,17 +162,20 @@ class RequestController extends Controller
     {
         $user = $request->user();
 
-        // Available Books
         $availableBooks = Book::query()
-            ->select(['id', 'name', 'cover', 'publisher_id'])
+            ->select(['id', 'name', 'cover', 'publisher_id', 'stock'])
             ->with(['publisher:id,name', 'authors:id,name'])
-            ->whereDoesntHave('requests', function ($q) {
+            ->withCount(['requests as active_requests_count' => function ($q) {
                 $q->whereIn('status', [BookRequest::STATUS_ACTIVE, BookRequest::STATUS_AWAITING_CONFIRMATION]);
-            })
+            }])
+            ->havingRaw('stock > active_requests_count')
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($book) {
+                $book->available_stock = max(0, $book->stock - $book->active_requests_count);
+                return $book;
+            });
 
-        // Books borrowed by the user
         $activeCount = BookRequest::query()
             ->where('user_id', $user->id)
             ->whereIn('status', [BookRequest::STATUS_ACTIVE, BookRequest::STATUS_AWAITING_CONFIRMATION])
@@ -212,15 +215,14 @@ class RequestController extends Controller
 
         $book = Book::with(['publisher:id,name'])->findOrFail($data['book_id']);
 
-        // Check if book is already borrowed
-        $bookHasActive = BookRequest::query()
+        $activeBookRequestsCount = BookRequest::query()
             ->where('book_id', $book->id)
             ->whereIn('status', [BookRequest::STATUS_ACTIVE, BookRequest::STATUS_AWAITING_CONFIRMATION])
-            ->exists();
+            ->count();
 
-        if ($bookHasActive) {
+        if ($book->stock <= $activeBookRequestsCount) {
             throw ValidationException::withMessages([
-                'book_id' => 'This book is not available for request right now.',
+                'book_id' => 'This book is out of stock and not available for request right now.',
             ]);
         }
 
@@ -371,7 +373,7 @@ class RequestController extends Controller
         return back()->with('success', 'Request confirmed successfully.');
     }
 
-    public function cancel(BookRequest $request)
+    public function cancel(BookRequest $request, BookAvailabilityAlertService $alerts)
     {
         $user = Auth::user();
 
@@ -390,6 +392,10 @@ class RequestController extends Controller
                 'status' => BookRequest::STATUS_CANCELED,
             ]);
         });
+
+        if ($request->book_id) {
+            $alerts->notifyIfAvailable($request->book_id);
+        }
 
         return back()->with('success', 'Request canceled.');
     }

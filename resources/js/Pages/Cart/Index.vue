@@ -7,7 +7,8 @@ const props = defineProps({
 })
 
 const updateQty = (item, qty) => {
-    if (qty < 1) return
+    // Não permite baixar de 1 nem ultrapassar o stock disponível
+    if (qty < 1 || qty > item.book?.available_stock) return
 
     router.patch(
         route("cart.items.update", item.id),
@@ -38,6 +39,14 @@ const formatMoney = (cents, currency = "EUR") => {
             <h1 class="text-3xl font-bold">
                 Shopping Cart
             </h1>
+
+            <div v-if="$page.props.flash?.warning" class="alert alert-warning mb-4 shadow-lg rounded-lg">
+                <span>{{ $page.props.flash.warning }}</span>
+            </div>
+
+            <div v-if="$page.props.flash?.error" class="alert alert-error mb-4 shadow-lg rounded-lg">
+                <span>{{ $page.props.flash.error }}</span>
+            </div>
 
             <div
                 v-if="!cart.items.length"
@@ -75,12 +84,21 @@ const formatMoney = (cents, currency = "EUR") => {
                         <p class="text-sm opacity-70">
                             {{ formatMoney(item.book?.price * 100) }}
                         </p>
+
+                        <span v-if="item.book?.available_stock === 0" class="text-xs text-red-400 font-semibold mt-1 inline-block">
+                            Out of stock
+                        </span>
+                        <span v-else-if="item.qty === item.book?.available_stock" class="text-xs text-yellow-500 font-semibold mt-1 inline-block">
+                            Max stock reached
+                        </span>
                     </div>
 
                     <div class="flex items-center gap-2">
                         <button
                             class="btn btn-sm py-2 px-2 bg-gray-700 hover:bg-[#3c39e3]"
                             @click="updateQty(item, item.qty - 1)"
+                            :disabled="item.qty <= 1"
+                            :class="{'opacity-50 cursor-not-allowed': item.qty <= 1}"
                         >
                             −
                         </button>
@@ -92,6 +110,8 @@ const formatMoney = (cents, currency = "EUR") => {
                         <button
                             class="btn btn-sm py-2 px-2 bg-gray-700 hover:bg-[#3c39e3]"
                             @click="updateQty(item, item.qty + 1)"
+                            :disabled="item.qty >= (item.book?.available_stock ?? 0)"
+                            :class="{'opacity-50 cursor-not-allowed': item.qty >= (item.book?.available_stock ?? 0)}"
                         >
                             +
                         </button>
@@ -101,9 +121,8 @@ const formatMoney = (cents, currency = "EUR") => {
                         {{ formatMoney(item.line_total) }}
                     </div>
 
-                    <!-- Remove -->
                     <button
-                        class="btn btn-sm bg-red-600 hover:bg-red-700 py-2 px-2"
+                        class="btn btn-sm bg-red-600 hover:bg-red-700 py-2 px-2 border-none"
                         @click="removeItem(item)"
                     >
                         ✕
@@ -119,8 +138,10 @@ const formatMoney = (cents, currency = "EUR") => {
                     </div>
 
                     <button
-                        class="btn bg-[#5754E8] hover:bg-[#3c39e3] px-6"
+                        class="btn bg-[#5754E8] hover:bg-[#3c39e3] px-6 text-white"
                         @click="$inertia.visit(route('checkout.delivery'))"
+                        :disabled="cart.items.some(i => i.book?.available_stock < i.qty)"
+                        :title="cart.items.some(i => i.book?.available_stock < i.qty) ? 'Adjust quantities to match available stock' : ''"
                     >
                         Proceed to delivery
                     </button>
