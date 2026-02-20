@@ -50,6 +50,7 @@ class HandleInertiaRequests extends Middleware
 
                     'profile_photo_url' => $user->profile_photo_url,
                     'profile_photo_path' => $user->profile_photo_path,
+                    'two_factor_enabled' => ! is_null($user->two_factor_secret),
                 ] : null,
             ],
 

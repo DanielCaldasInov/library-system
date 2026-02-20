@@ -19,6 +19,7 @@ class User extends Authenticatable
 
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
+    use HasApiTokens;
     use LogsActivity;
     use HasProfilePhoto;
     use Notifiable;
@@ -54,6 +55,7 @@ class User extends Authenticatable
      */
     protected $appends = [
         'profile_photo_url',
+        'two_factor_enabled',
     ];
 
     /**
@@ -98,6 +100,11 @@ class User extends Authenticatable
     public function isCitizen(): bool
     {
         return $this->role?->name === 'citizen';
+    }
+
+    public function getTwoFactorEnabledAttribute()
+    {
+        return ! is_null($this->two_factor_secret);
     }
 
 }

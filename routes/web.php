@@ -14,6 +14,7 @@ use App\Http\Controllers\SystemLogController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Support\Facades\DB;
 
 Route::get('/', fn () => Inertia::render('Welcome'));
 
@@ -26,6 +27,31 @@ Route::middleware([
     'verified',
     'admin',
 ])->group(function () {
+
+    Route::get('/debug-2fa', function () {
+        $user = auth()->user();
+        if (!$user) return 'Faça login primeiro!';
+
+        // 1. Vai buscar diretamente à base de dados (ignorando o Model)
+        $rawDbValue = DB::table('users')->where('id', $user->id)->value('two_factor_secret');
+
+        // 2. Vai buscar através do Model (onde está a acontecer o erro)
+        $modelValue = $user->two_factor_secret;
+
+        // 3. Tenta desencriptar manualmente
+        try {
+            $decrypted = decrypt($rawDbValue);
+            $decryptStatus = 'Sucesso! (APP_KEY está correta)';
+        } catch (\Exception $e) {
+            $decryptStatus = 'Falhou: ' . $e->getMessage();
+        }
+
+        return response()->json([
+            '1_valor_na_base_de_dados' => $rawDbValue ? 'Preenchido' : 'Vazio',
+            '2_valor_no_model' => $modelValue ? 'Preenchido' : 'NULO! (Aqui está o bug)',
+            '3_teste_desencriptacao' => $decryptStatus,
+        ]);
+    });
 
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
